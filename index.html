@@ -771,9 +771,8 @@ function rollItem() {
             if (available.length === 0) continue;
             if (tier === "COMMON") return { name: "Common", rarity: "COMMON" };
             const chosen = available[Math.floor(Math.random() * available.length)];
-            const p = players[currentPlayerName];
-            if (tier === "SR") p.srPity = 0;
-            else if (tier === "R") p.rPity = 0;
+            // Pity TIDAK direset di sini walau dapat SR/R secara natural.
+            // Pity hanya direset saat diklaim manual lewat claimPityItem().
             return { name: chosen, rarity: tier };
         }
     }
@@ -787,9 +786,9 @@ function rollItem() {
 
 function incrementPity(rarity) {
     const p = players[currentPlayerName];
+    // Pity selalu bertambah tiap pull, apa pun rarity yang didapat.
+    // Reset HANYA terjadi saat player klaim manual (lihat claimPityItem()).
     p.rPity++; p.srPity++;
-    if (rarity === "SR") p.srPity = 0;
-    else if (rarity === "R") p.rPity = 0;
 }
 
 function decrementStock(itemName) {
