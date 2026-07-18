@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GACHA AKID MALANG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+        :root{
+            --ak-bg:#0a0c0f; --ak-panel:#12151a; --ak-panel-2:#181c22; --ak-line:rgba(255,127,17,.28);
+            --ak-orange:#ff7f11; --ak-orange-dim:#c9600a; --ak-cyan:#3fd8e0; --ak-steel:#8a94a6;
+            --ak-gold:#f0b429; --ak-text:#eef1f5; --ak-dim:#7c8494;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Rajdhani', system-ui; font-weight: 600; letter-spacing: .02em;
+            margin: 0; padding: 0; overflow-x: hidden; min-height: 100dvh;
+            background: var(--ak-bg); color: var(--ak-text);
+        }
+        h1,h2,h3, .shuffle-text, .skip-btn, button, .admin-input { font-family: 'Chakra Petch', 'Rajdhani', system-ui; }
+        .tabular-nums, #rPity, #srPity, #shuffleCounter { font-family: 'Share Tech Mono', monospace; }
+
+        .ak-scanline { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: .05;
+            background: repeating-linear-gradient(0deg, #fff 0px, transparent 1px, transparent 3px);
+            mix-blend-mode: overlay;
+        }
+
+        .orb-wrap { perspective: 600px; }
+        .orb {
+            width: 11rem; height: 11rem; border-radius: 6px;
+            clip-path: polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%);
+            background: conic-gradient(from 0deg, var(--ak-orange), var(--ak-gold), var(--ak-cyan), var(--ak-orange));
+            display: flex; align-items: center; justify-content: center;
+            border: 3px solid rgba(255,255,255,.85);
+            box-shadow: 0 0 40px rgba(255,127,17,.45), 0 0 80px rgba(63,216,224,.2);
+            animation: orbFloat 3s ease-in-out infinite, orbSpin 12s linear infinite;
+        }
+        @keyframes orbFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes orbSpin {
+            0% { background: conic-gradient(from 0deg,var(--ak-orange),var(--ak-gold),var(--ak-cyan),var(--ak-orange)); }
+            100% { background: conic-gradient(from 360deg,var(--ak-orange),var(--ak-gold),var(--ak-cyan),var(--ak-orange)); }
+        }
+
+        .pull-overlay { position: fixed; inset: 0; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; }
+        .pull-overlay.active { display: flex; }
+
+        .starburst { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .starburst .ray { position: absolute; top: 50%; left: 50%; width: 3px; height: 0; transform-origin: top center; animation: rayShoot .8s ease-out forwards; }
+        @keyframes rayShoot { 0% { height: 0; opacity: 1; } 100% { height: 50vh; opacity: 0; } }
+
+        .crack-effect { position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,255,255,.9) 0%, transparent 60%); animation: crackFlash .4s ease-out forwards; pointer-events: none; }
+        @keyframes crackFlash { 0% { opacity: 1; transform: scale(.2); } 100% { opacity: 0; transform: scale(3); } }
+
+        .shuffle-text { animation: shufflePulse .4s ease-in-out infinite alternate; }
+        @keyframes shufflePulse { 0% { opacity: .5; transform: scale(.95); } 100% { opacity: 1; transform: scale(1.05); } }
+
+        .shuffle-orb-spin { animation: shuffleOrbSpin .15s linear infinite; }
+        @keyframes shuffleOrbSpin {
+            0% { transform: rotate(0) scale(1); } 25% { transform: rotate(90deg) scale(.85); }
+            50% { transform: rotate(180deg) scale(1.1); } 75% { transform: rotate(270deg) scale(.9); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .shuffle-particle { position: absolute; border-radius: 50%; animation: shuffleParticleOrbit .8s linear infinite; }
+        @keyframes shuffleParticleOrbit {
+            0% { transform: rotate(0) translateX(80px) rotate(0); opacity: 1; }
+            100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); opacity: .5; }
+        }
+
+        @keyframes cardPopIn { 0% { transform: scale(.2) rotate(-20deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        .card-reveal { animation: cardPopIn .7s cubic-bezier(.34,1.56,.64,1) forwards; opacity: 0; }
+        .card-hidden { opacity: 0; transform: scale(.2) rotate(-20deg); }
+        .card-show { animation: cardPopIn .7s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+        .glow-sr { box-shadow: 0 0 25px rgba(255,122,0,.85), 0 0 50px rgba(255,122,0,.35); border: 2px solid #ff7a00; }
+        .glow-r { box-shadow: 0 0 22px rgba(255,180,60,.7), 0 0 40px rgba(255,180,60,.25); border: 2px solid #ffb347; }
+        .glow-common { box-shadow: 0 0 20px rgba(168,85,247,.6), 0 0 38px rgba(168,85,247,.25); border: 2px solid #a855f7; }
+
+        .tier-bg-sr { background: linear-gradient(160deg, #3d1a00 0%, #9a3c00 45%, #ff7a00 100%); }
+        .tier-bg-r { background: linear-gradient(160deg, #3d2a00 0%, #9a6a00 55%, #ffb347 100%); }
+        .tier-bg-common { background: linear-gradient(160deg, #2e1065 0%, #6d28d9 55%, #a855f7 100%); }
+
+        .shimmer { position: relative; overflow: hidden; }
+        .shimmer::after {
+            content: ''; position: absolute; inset: -50%;
+            background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,.15) 50%, transparent 70%);
+            animation: shimmerMove 2s infinite;
+        }
+        @keyframes shimmerMove { 0% { transform: translateX(-100%) rotate(25deg); } 100% { transform: translateX(100%) rotate(25deg); } }
+
+        #particleCanvas { position: fixed; inset: 0; z-index: 101; pointer-events: none; }
+
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: var(--ak-orange); border-radius: 99px; }
+
+        .modal-enter { animation: modalSlide .3s ease-out; }
+        @keyframes modalSlide { 0% { transform: translateY(30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
+        .btn-press { transition: transform .1s; text-transform: uppercase; }
+        .btn-press:active { transform: scale(.93); }
+
+        .stock-badge { font-size: 8px; padding: 2px 8px; border-radius: 2px; display: inline-block; }
+
+        .skip-btn {
+            position: fixed; bottom: 10dvh; left: 50%; transform: translateX(-50%); z-index: 200;
+            padding: 12px 32px; background: rgba(255,127,17,.12); backdrop-filter: blur(8px);
+            border: 2px solid rgba(255,127,17,.5); clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+            color: #fff; font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+            cursor: pointer; animation: skipPulse 1s ease-in-out infinite alternate;
+        }
+        .skip-btn:active { transform: translateX(-50%) scale(.9); }
+        @keyframes skipPulse { 0% { opacity: .6; } 100% { opacity: 1; } }
+
+        .counter-badge { background: rgba(63,216,224,.15); border: 1px solid rgba(63,216,224,.4); border-radius: 2px; padding: 4px 12px; font-size: 10px; color: #3fd8e0; letter-spacing:.08em; }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .pity-ready { animation: pityGlow 1.5s ease-in-out infinite alternate; cursor: pointer; }
+        @keyframes pityGlow { 0% { text-shadow: 0 0 8px currentColor; } 100% { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; } }
+
+        .pity-item { transition: transform .2s, box-shadow .2s; cursor: pointer; }
+        .pity-item:hover { transform: scale(1.05); }
+        .pity-item:active { transform: scale(.95); }
+
+        .tab-active { background: var(--ak-orange); color: #14100a; }
+        .tab-inactive { background: #1c2027; color: #7c8494; }
+
+        .admin-input {
+            width: 100%; background: #1c2027; border: 1px solid rgba(255,127,17,.35);
+            border-radius: 2px; padding: 10px 14px; font-size: 12px;
+            color: #fff; font-family: 'Chakra Petch', system-ui;
+        }
+        .admin-input:focus { outline: none; border-color: var(--ak-orange); }
+        .admin-row { background: #14171c; border-left: 2px solid rgba(255,127,17,.4); border-radius: 2px; padding: 10px; margin-bottom: 8px; }
+
+        /* thin corner brackets — HUD signature detail */
+        .ak-brackets { position: relative; }
+        .ak-brackets::before, .ak-brackets::after {
+            content: ''; position: absolute; width: 10px; height: 10px; pointer-events: none;
+        }
+        .ak-brackets::before { top: -1px; left: -1px; border-top: 2px solid var(--ak-orange); border-left: 2px solid var(--ak-orange); }
+        .ak-brackets::after { bottom: -1px; right: -1px; border-bottom: 2px solid var(--ak-orange); border-right: 2px solid var(--ak-orange); }
+
+        /* angular cut corner, used on header/buttons/panels */
+        .ak-cut { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+    </style>
+</head>
+<body class="flex flex-col" style="min-height:100dvh">
+    <div class="ak-scanline"></div>
+
+    <!-- PULL OVERLAY -->
+    <div id="pullOverlay" class="pull-overlay">
+        <canvas id="particleCanvas"></canvas>
+        <div id="shuffleContainer" style="position:relative;z-index:102;display:flex;flex-direction:column;align-items:center;gap:16px">
+            <div id="shuffleParticles" style="position:absolute;width:200px;height:200px"></div>
+            <div id="pullOrbAnim" style="width:8rem;height:8rem;clip-path:polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%);background:conic-gradient(from 0deg,#ff7f11,#f0b429,#3fd8e0,#ff7f11);border:3px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;position:relative">
+                <span style="font-size:3rem">⬡</span>
+            </div>
+            <div id="shuffleText" class="shuffle-text text-sm text-orange-300 tracking-widest" style="display:none">MENGANALISIS SINYAL...</div>
+            <div id="shuffleCounter" class="text-xs text-neutral-400 tabular-nums" style="display:none"></div>
+        </div>
+    </div>
+    <button id="skipBtn" class="skip-btn" style="display:none" onclick="skipAnimation()">SKIP ⏭</button>
+
+    <!-- HEADER -->
+    <div class="bg-neutral-900/95 backdrop-blur border-b-2 border-orange-500/60 px-3 py-3 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-2 min-w-0">
+            <div class="min-w-0">
+                <span class="text-orange-400 text-[8px] tracking-[.2em] block">// TERMINAL REKRUTMEN</span>
+                <h1 id="currentPlayer" class="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300 truncate">Pilih Player</h1>
+            </div>
+        </div>
+        <div class="flex gap-3 text-center flex-shrink-0">
+            <div onclick="tryClaimPity('R')" id="pityRWrap" class="cursor-pointer">
+                <div class="text-[7px] text-amber-400">R</div>
+                <div id="rPity" class="text-sm font-bold text-amber-300 tabular-nums">0/15</div>
+            </div>
+            <div onclick="tryClaimPity('SR')" id="pitySrWrap" class="cursor-pointer">
+                <div class="text-[7px] text-orange-400">SR</div>
+                <div id="srPity" class="text-sm font-bold text-orange-300 tabular-nums">0/45</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col items-center justify-center px-4 py-5 relative overflow-hidden" style="background-image:linear-gradient(rgba(255,127,17,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,127,17,.08) 1px,transparent 1px);background-size:28px 28px;">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div style="position:absolute;width:4px;height:4px;background:#ff7f11;border-radius:50%;top:20%;left:10%;animation:orbFloat 4s ease-in-out infinite"></div>
+            <div style="position:absolute;width:3px;height:3px;background:#3fd8e0;border-radius:50%;top:40%;left:80%;animation:orbFloat 5s ease-in-out infinite .5s"></div>
+            <div style="position:absolute;width:5px;height:5px;background:#f0b429;border-radius:50%;top:70%;left:30%;animation:orbFloat 3.5s ease-in-out infinite 1s"></div>
+            <div style="position:absolute;width:3px;height:3px;background:#3fd8e0;border-radius:50%;top:15%;left:65%;animation:orbFloat 4.5s ease-in-out infinite 1.5s"></div>
+        </div>
+        <div class="orb-wrap mb-4 ak-brackets">
+            <div class="orb">
+                <div class="text-center">
+                    <div class="text-5xl">⬡</div>
+                    <div class="text-white text-[10px] font-bold tracking-widest mt-1">GACHA AKID MALANG</div>
+                </div>
+            </div>
+        </div>
+        <div class="w-full max-w-sm space-y-2 relative z-10">
+            <button onclick="pull(1)" class="ak-cut btn-press w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 text-base font-bold shadow-xl shimmer">PULL 1x<br><span class="text-[10px] font-normal opacity-80">Rp2.000</span></button>
+            <button onclick="pull(3)" class="ak-cut btn-press w-full py-4 bg-gradient-to-r from-cyan-600 to-teal-500 text-base font-bold shadow-xl shimmer">PULL 3x<br><span class="text-[10px] font-normal opacity-80">Rp5.000</span></button>
+            <div class="flex gap-2">
+                <input id="customPullInput" type="number" min="1" max="999" placeholder="Jumlah..." class="flex-1 bg-neutral-800 border border-orange-500/50 rounded px-4 py-3 text-xs font-bold text-center focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400">
+                <button onclick="pullCustom()" class="ak-cut btn-press bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-xs font-bold shadow-xl shimmer whitespace-nowrap">PULL ✦</button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleStockModal()" class="btn-press flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-500/40 rounded text-[9px] font-bold">📦 STOK</button>
+                <button onclick="toggleSpendingModal()" class="btn-press flex-1 py-2.5 bg-cyan-700 hover:bg-cyan-600 rounded text-[9px] font-bold">💰 SPENDING</button>
+                <button onclick="toggleAdminLogin()" class="btn-press flex-1 py-2.5 bg-neutral-700 hover:bg-neutral-600 rounded text-[9px] font-bold">⚙️ ADMIN</button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="togglePlayerModal()" class="btn-press flex-1 py-2.5 bg-orange-700 hover:bg-orange-600 rounded text-[9px] font-bold">👤 PLAYER MANAGER — <span id="currentPlayerBtnLabel">Pilih Player</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL HISTORY -->
+    <div class="bg-neutral-900/95 backdrop-blur border-t border-orange-500/50 p-3" style="max-height:26dvh">
+        <div class="flex items-center justify-between mb-2">
+            <div class="text-orange-300 text-[8px] tracking-widest">HISTORY (SEMUA PLAYER)</div>
+            <button onclick="openFullHistory()" class="btn-press text-[8px] text-orange-400 border border-orange-500/50 px-2 py-1 rounded-lg hover:bg-orange-500/20">LIHAT SEMUA →</button>
+        </div>
+        <div id="history" class="flex flex-col gap-1.5 overflow-y-auto scroll-area" style="max-height:18dvh"></div>
+    </div>
+
+    <!-- FULL HISTORY MODAL -->
+    <div id="fullHistoryModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden" style="max-height:90dvh">
+            <div class="bg-neutral-800 p-3 flex items-center justify-between border-b border-orange-500/50">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📜</span>
+                    <div>
+                        <div class="text-sm font-bold">Semua History</div>
+                        <div id="fullHistoryCount" class="text-[8px] text-neutral-400"></div>
+                    </div>
+                </div>
+                <div onclick="closeModal('fullHistoryModal')" class="text-2xl cursor-pointer px-2">✕</div>
+            </div>
+            <div class="p-3 border-b border-neutral-700">
+                <input id="fullHistorySearch" type="text" placeholder="Cari nama item / player..." class="w-full bg-neutral-800 border border-orange-500/50 rounded-xl px-4 py-2.5 text-[10px] focus:outline-none focus:border-orange-400" oninput="filterFullHistory()">
+            </div>
+            <div id="fullHistoryList" class="flex flex-col gap-1.5 overflow-y-auto scroll-area p-3" style="max-height:65dvh"></div>
+        </div>
+    </div>
+
+    <!-- PLAYER MODAL -->
+    <div id="playerModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden" style="max-height:85dvh">
+            <div class="bg-neutral-800 p-3 flex items-center justify-between border-b border-orange-500/50">
+                <div class="flex items-center gap-2"><span class="text-xl">📋</span><div class="text-sm font-bold">Daftar Player</div></div>
+                <div onclick="closeModal('playerModal')" class="text-2xl cursor-pointer px-2">✕</div>
+            </div>
+            <div class="p-4 border-b border-neutral-700">
+                <input id="newName" type="text" placeholder="Nama baru..." class="w-full bg-neutral-800 border border-orange-500/50 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-400">
+                <button onclick="registerNewPlayer()" class="btn-press mt-2 w-full bg-orange-600 py-3 rounded-xl text-xs font-bold">DAFTAR</button>
+            </div>
+            <div class="p-4 border-b border-neutral-700">
+                <input id="searchInput" type="text" placeholder="Cari nama..." class="w-full bg-neutral-800 border border-orange-500/50 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-400" oninput="filterPlayerList()">
+            </div>
+            <div class="px-4 pb-4">
+                <div class="text-orange-300 text-[8px] mb-2">DAFTAR PLAYER</div>
+                <div class="overflow-y-auto scroll-area border border-neutral-700 rounded-xl bg-neutral-950 p-2" style="max-height:35dvh">
+                    <ul id="playerListModal" class="space-y-1.5"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMMON MODAL -->
+    <div id="commonModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 border-2 border-green-400/50 rounded-3xl p-5 max-w-xs w-full mx-4 text-center">
+            <h3 class="text-base mb-2 text-green-300">🎁 COMMON REWARD!</h3>
+            <div id="commonCounter" class="counter-badge inline-block mb-4"></div>
+            <p class="mb-4 text-[10px] opacity-70">Pilih hadiahmu:</p>
+            <div id="commonSingleBtns" class="mb-3">
+                <button id="btnStikerSingle" onclick="chooseCommon('Stiker')" class="btn-press w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl text-sm font-bold">STIKER</button>
+            </div>
+            <div id="commonBulkBtns">
+                <button id="btnStikerAll" onclick="chooseAllCommon('Stiker')" class="btn-press w-full bg-emerald-700 hover:bg-emerald-600 py-3 rounded-xl text-[10px] font-bold border border-emerald-400/30">SEMUA STIKER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULT MODAL -->
+    <div id="resultModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-3xl w-full max-w-xs mx-4 p-5" style="max-height:80dvh">
+            <div class="flex justify-between mb-4">
+                <span class="text-orange-300 font-bold text-sm">HASIL PULL</span>
+                <span onclick="closeResultModal()" class="text-2xl cursor-pointer px-1">✕</span>
+            </div>
+            <div id="resultsContainer" class="grid grid-cols-2 gap-3 overflow-y-auto scroll-area" style="max-height:55dvh"></div>
+            <button onclick="closeResultModal()" class="btn-press mt-4 w-full py-3 bg-orange-600 rounded-xl text-xs font-bold">OK</button>
+        </div>
+    </div>
+
+    <!-- STOCK MODAL -->
+    <div id="stockModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden" style="max-height:85dvh">
+            <div class="bg-neutral-800 p-3 flex items-center justify-between border-b border-orange-500/50">
+                <div class="flex items-center gap-2"><span class="text-xl">📦</span><div class="text-sm font-bold">Kelola Stok</div></div>
+                <div onclick="closeModal('stockModal')" class="text-2xl cursor-pointer px-2">✕</div>
+            </div>
+            <div class="p-4 overflow-y-auto scroll-area" style="max-height:70dvh">
+                <div id="stockList" class="space-y-3"></div>
+                <div class="mt-4 pt-4 border-t border-neutral-700">
+                    <button onclick="resetStock()" class="btn-press w-full py-3 bg-amber-600 hover:bg-amber-500 rounded-xl text-[10px] font-bold">🔄 RESET STOK KE DEFAULT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OOS MODAL -->
+    <div id="oosModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 border-2 border-red-500/50 rounded-3xl p-6 max-w-xs w-full mx-4 text-center">
+            <h3 class="text-lg mb-3 text-red-400">❌ STOK HABIS!</h3>
+            <p id="oosText" class="mb-5 text-xs opacity-70"></p>
+            <button onclick="closeModal('oosModal')" class="btn-press w-full py-3 bg-red-600 rounded-xl text-xs font-bold">OK</button>
+        </div>
+    </div>
+
+    <!-- PITY CLAIM MODAL -->
+    <div id="pityClaimModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 border-2 rounded-3xl p-5 max-w-xs w-full mx-4 text-center" id="pityClaimInner">
+            <h3 id="pityClaimTitle" class="text-base mb-2">🎉 PITY TERCAPAI!</h3>
+            <p id="pityClaimDesc" class="mb-4 text-[10px] opacity-70"></p>
+            <div id="pityClaimCounter" class="counter-badge inline-block mb-4"></div>
+            <div id="pityClaimItems" class="space-y-2"></div>
+            <button onclick="closeModal('pityClaimModal')" class="btn-press mt-4 w-full py-2 bg-neutral-700 rounded-xl text-[10px] font-bold opacity-60">NANTI SAJA</button>
+        </div>
+    </div>
+
+    <!-- SPENDING MODAL -->
+    <div id="spendingModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden" style="max-height:85dvh">
+            <div class="bg-neutral-800 p-3 flex items-center justify-between border-b border-orange-500/50">
+                <div class="flex items-center gap-2"><span class="text-xl">💰</span><div class="text-sm font-bold">Spending</div></div>
+                <div onclick="closeModal('spendingModal')" class="text-2xl cursor-pointer px-2">✕</div>
+            </div>
+            <div class="p-4 overflow-y-auto scroll-area" style="max-height:70dvh">
+                <div id="spendingList" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL MODAL -->
+    <div id="adminModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
+        <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden" style="max-height:90dvh">
+            <div class="bg-neutral-800 p-3 flex items-center justify-between border-b border-orange-500/50">
+                <div class="flex items-center gap-2"><span class="text-xl">⚙️</span><div class="text-sm font-bold">Admin Panel</div></div>
+                <div onclick="closeModal('adminModal')" class="text-2xl cursor-pointer px-2">✕</div>
+            </div>
+            <div class="flex border-b border-neutral-700">
+                <button onclick="switchAdminTab('rates')" id="tabRates" class="flex-1 py-2.5 text-[9px] font-bold tab-active rounded-none">📊 RATES</button>
+                <button onclick="switchAdminTab('items')" id="tabItems" class="flex-1 py-2.5 text-[9px] font-bold tab-inactive rounded-none">🎁 ITEMS</button>
+                <button onclick="switchAdminTab('revenue')" id="tabRevenue" class="flex-1 py-2.5 text-[9px] font-bold tab-inactive rounded-none">💵 REVENUE</button>
+                <button onclick="switchAdminTab('danger')" id="tabDanger" class="flex-1 py-2.5 text-[9px] font-bold tab-inactive rounded-none text-red-400">⚠ RESET</button>
+            </div>
+            <div class="p-4 overflow-y-auto scroll-area" style="max-height:65dvh">
+                <div id="adminRatesTab">
+                    <div class="text-[8px] text-orange-300 mb-3 tracking-widest">RATE GACHA (TOTAL HARUS = 100%)</div>
+                    <div id="adminRatesList" class="space-y-2"></div>
+                    <div id="adminRateTotal" class="mt-3 text-center text-xs font-bold"></div>
+                    <button onclick="saveAdminRates()" class="btn-press mt-3 w-full py-3 bg-orange-600 rounded-xl text-xs font-bold">💾 SIMPAN RATES</button>
+                </div>
+                <div id="adminItemsTab" style="display:none">
+                    <div class="text-[8px] text-orange-300 mb-3 tracking-widest">KELOLA ITEM PER TIER</div>
+                    <div id="adminItemsList" class="space-y-3"></div>
+                    <div class="mt-4 pt-4 border-t border-neutral-700">
+                        <div class="text-[8px] text-green-300 mb-2">TAMBAH ITEM BARU</div>
+                        <select id="newItemTier" class="admin-input mb-2">
+                            <option value="SR">SR</option>
+                            <option value="R">R</option><option value="COMMON">COMMON</option>
+                        </select>
+                        <input id="newItemName" type="text" placeholder="Nama item..." class="admin-input mb-2">
+                        <input id="newItemStock" type="number" placeholder="Stok awal..." class="admin-input mb-2" value="10">
+                        <button onclick="addNewItem()" class="btn-press w-full py-3 bg-green-600 rounded-xl text-xs font-bold">➕ TAMBAH ITEM</button>
+                    </div>
+                </div>
+                <div id="adminRevenueTab" style="display:none">
+                    <div class="text-[8px] text-orange-300 mb-3 tracking-widest">PENDAPATAN</div>
+                    <div id="adminRevenueSummary" class="space-y-3"></div>
+                </div>
+                <div id="adminDangerTab" style="display:none">
+                    <div class="text-[8px] text-red-400 mb-3 tracking-widest">⚠ ZONA BERBAHAYA</div>
+                    <div class="bg-red-950/40 border border-red-500/30 rounded-2xl p-4 mb-3">
+                        <div class="text-xs font-bold text-red-300 mb-1">🗑 Reset History</div>
+                        <div class="text-[9px] text-neutral-400 mb-3">Hapus semua history pull global. Pity & data player tetap aman.</div>
+                        <button onclick="resetHistory()" class="btn-press w-full py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[10px] font-bold">🗑 RESET HISTORY SAJA</button>
+                    </div>
+                    <div class="bg-red-950/60 border-2 border-red-500/60 rounded-2xl p-4">
+                        <div class="text-xs font-bold text-red-300 mb-1">💣 Reset Semua Data</div>
+                        <div class="text-[9px] text-neutral-400 mb-3">Hapus SEMUA data: player, history, stok, dan konfigurasi. Tidak bisa dikembalikan!</div>
+                        <input id="resetConfirmInput" type="text" placeholder='Ketik "RESET" untuk konfirmasi...' class="admin-input mb-3">
+                        <button onclick="resetAllDataAdmin()" class="btn-press w-full py-3 bg-red-800 hover:bg-red-700 rounded-xl text-[10px] font-bold border border-red-400/40">⚠ HAPUS SEMUA DATA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRM/ALERT DIALOG (pengganti native confirm/alert, biar konsisten di semua browser/WebView) -->
+    <div id="akDialogModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-[60] modal-backdrop">
+        <div class="modal-enter ak-cut bg-neutral-900 border-2 border-orange-500/50 p-5 max-w-xs w-full mx-4 text-center">
+            <div id="akDialogText" class="text-xs mb-5 leading-relaxed" style="white-space:pre-line"></div>
+            <div class="flex gap-2">
+                <button id="akDialogCancel" class="btn-press flex-1 py-3 bg-neutral-700 rounded text-[10px] font-bold">BATAL</button>
+                <button id="akDialogOk" class="btn-press flex-1 py-3 bg-orange-600 rounded text-[10px] font-bold">OK</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+/* ========== CUSTOM DIALOG (ganti window.alert / window.confirm) ========== */
+function akAlert(message) {
+    const okBtn = document.getElementById("akDialogOk");
+    document.getElementById("akDialogText").textContent = message;
+    document.getElementById("akDialogCancel").style.display = "none";
+    okBtn.textContent = "OK";
+    okBtn.className = "btn-press flex-1 py-3 bg-orange-600 rounded text-[10px] font-bold";
+    document.getElementById("akDialogModal").classList.remove("hidden");
+    okBtn.onclick = () => { document.getElementById("akDialogModal").classList.add("hidden"); okBtn.onclick = null; };
+}
+function akConfirm(message, onYes) {
+    const modal = document.getElementById("akDialogModal");
+    const okBtn = document.getElementById("akDialogOk");
+    const cancelBtn = document.getElementById("akDialogCancel");
+    document.getElementById("akDialogText").textContent = message;
+    cancelBtn.style.display = "";
+    okBtn.textContent = "YAKIN";
+    okBtn.className = "btn-press flex-1 py-3 bg-red-600 rounded text-[10px] font-bold";
+    modal.classList.remove("hidden");
+    const cleanup = () => { modal.classList.add("hidden"); okBtn.onclick = null; cancelBtn.onclick = null; };
+    okBtn.onclick = () => { cleanup(); onYes(); };
+    cancelBtn.onclick = () => { cleanup(); };
+}
+
+/* ========== CONSTANTS ========== */
+const TIERS = ["SR", "R", "COMMON"];
+const TIER_COLORS = { SR: "orange", R: "amber", COMMON: "purple" };
+const TIER_EMOJI = { SR: "💎", R: "✨", COMMON: "🎁" };
+const TIER_GLOW = { SR: "glow-sr", R: "glow-r", COMMON: "glow-common" };
+const TIER_BG = { SR: "tier-bg-sr", R: "tier-bg-r", COMMON: "tier-bg-common" };
+const TIER_TEXT = { SR: "text-white", R: "text-neutral-900", COMMON: "text-white" };
+const TIER_RANK = { SR: 3, R: 2, COMMON: 1 };
+const TIER_HISTORY_CLS = {
+    SR: "bg-orange-500/20 text-orange-300 border border-orange-500/30",
+    R: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    COMMON: "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+};
+const TIER_PITY_COLOR = {
+    R: ["text-amber-300", "border-amber-400/50"],
+    SR: ["text-orange-300", "border-orange-400/50"]
+};
+const TIER_PARTICLE = {
+    SR: ["#ff7a00", "#ffb347", "#fff"],
+    R: ["#ffb347", "#ffd580", "#fff"],
+    COMMON: ["#a855f7", "#c084fc", "#fff"]
+};
+
+const DEFAULT_STOCK = {
+    "Stiker": 99,
+    "Poster A4": 10,
+    "Postcard A6": 6
+};
+
+/* ========== STATE ========== */
+let currentPlayerName = "";
+let pendingCommons = [];
+let isPulling = false;
+let skipRequested = false;
+let revealTimeouts = [];
+
+/* ========== MIGRATION MID → R ========== */
+const CONFIG_VERSION = "akid-malang-v1";
+function migrateConfig(cfg) {
+    if ("MID" in cfg.rates && !("R" in cfg.rates)) { cfg.rates.R = cfg.rates.MID; delete cfg.rates.MID; }
+    if ("MID" in cfg.pity && !("R" in cfg.pity)) { cfg.pity.R = cfg.pity.MID; delete cfg.pity.MID; }
+    if ("MID" in cfg.items && !("R" in cfg.items)) { cfg.items.R = cfg.items.MID; delete cfg.items.MID; }
+
+    // Migrasi ke struktur AKID MALANG (tier SSR dihapus, rate/pity/item baru)
+    if (localStorage.getItem("gachaConfigVersion") !== CONFIG_VERSION) {
+        cfg.rates = { SR: 0.005, R: 0.054, COMMON: 0.941 };
+        cfg.pity = { R: 15, SR: 45 };
+        cfg.items = { SR: ["Postcard A6"], R: ["Poster A4"], COMMON: ["Stiker"] };
+        localStorage.setItem("gachaConfigVersion", CONFIG_VERSION);
+    }
+    delete cfg.rates.SSR; delete cfg.pity.SSR; delete cfg.items.SSR;
+    return cfg;
+}
+
+function migratePlayers(obj) {
+    Object.keys(obj).forEach(name => {
+        const p = obj[name];
+        if (!p.pullLog) p.pullLog = [];
+        if ("midPity" in p) { p.rPity = p.midPity; delete p.midPity; }
+        if (!("rPity" in p)) p.rPity = 0;
+        (p.history || []).forEach(h => { if (h.rarity === "MID") h.rarity = "R"; });
+    });
+    return obj;
+}
+
+function migrateHistory(arr) {
+    arr.forEach(h => { if (h.rarity === "MID") h.rarity = "R"; });
+    return arr;
+}
+
+/* ========== LOAD DATA ========== */
+let CONFIG = migrateConfig(JSON.parse(localStorage.getItem("gachaConfig")) || {
+    rates: { SR: 0.005, R: 0.054, COMMON: 0.941 },
+    pity: { R: 15, SR: 45 },
+    items: {
+        SR: ["Postcard A6"],
+        R: ["Poster A4"],
+        COMMON: ["Stiker"]
+    },
+});
+let players = migratePlayers(JSON.parse(localStorage.getItem("gachaPlayers")) || {});
+let globalHistory = migrateHistory(JSON.parse(localStorage.getItem("gachaGlobalHistory")) || []);
+let stock = JSON.parse(localStorage.getItem("gachaStock")) || JSON.parse(JSON.stringify(DEFAULT_STOCK));
+if (localStorage.getItem("gachaStockVersion") !== CONFIG_VERSION) {
+    stock = JSON.parse(JSON.stringify(DEFAULT_STOCK));
+    localStorage.setItem("gachaStockVersion", CONFIG_VERSION);
+}
+
+/* ========== SAVE HELPERS ========== */
+function saveConfig() { localStorage.setItem("gachaConfig", JSON.stringify(CONFIG)); }
+function savePlayers() { localStorage.setItem("gachaPlayers", JSON.stringify(players)); }
+function saveStock() { localStorage.setItem("gachaStock", JSON.stringify(stock)); }
+function saveGlobalHistory() { localStorage.setItem("gachaGlobalHistory", JSON.stringify(globalHistory)); }
+
+/* ========== UTILS ========== */
+function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+function formatRp(n) { return "Rp" + n.toLocaleString("id-ID"); }
+
+/* ========== PERHITUNGAN BIAYA PULL ========== */
+function calcPullCost(times) {
+    if (times <= 0) return 0;
+    const paket3 = Math.floor(times / 3);   // jumlah paket 3x @ Rp5.000
+    const sisa   = times % 3;               // sisanya (0, 1, atau 2) @ Rp2.000 per pull
+    return (paket3 * 5000) + (sisa * 2000);
+}
+
+function calcSpending(name) {
+    const p = players[name];
+    if (!p || !p.pullLog) return 0;
+    return p.pullLog.reduce((sum, e) => sum + e.cost, 0);
+}
+
+function calcTotalRevenue() {
+    return Object.keys(players).reduce((sum, n) => sum + calcSpending(n), 0);
+}
+
+/* ========== ESC KEY ========== */
+document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const modals = ["pityClaimModal","resultModal","commonModal","playerModal","stockModal","oosModal","spendingModal","adminModal","fullHistoryModal","akDialogModal"];
+    for (const id of modals) {
+        const el = document.getElementById(id);
+        if (el && !el.classList.contains("hidden")) { el.classList.add("hidden"); e.preventDefault(); return; }
+    }
+    if (document.getElementById("pullOverlay").classList.contains("active") || document.getElementById("skipBtn").style.display !== "none") skipAnimation();
+});
+
+/* ========== PLAYER MANAGEMENT ========== */
+function togglePlayerModal() {
+    const m = document.getElementById("playerModal");
+    m.classList.toggle("hidden");
+    if (!m.classList.contains("hidden")) renderPlayerListModal("");
+}
+
+function renderPlayerListModal(filter = "") {
+    const ul = document.getElementById("playerListModal");
+    ul.innerHTML = "";
+    const names = Object.keys(players).filter(n => n.toLowerCase().includes(filter.toLowerCase()));
+
+    names.forEach(name => {
+        const p = players[name], hist = p.history || [];
+        const stiker = hist.filter(h => h.name === "Stiker").length;
+        const poster = hist.filter(h => h.name === "Poster A4").length;
+        const postcard = hist.filter(h => h.name === "Postcard A6").length;
+        const spent = calcSpending(name);
+        const li = document.createElement("li");
+        li.className = "bg-neutral-800 hover:bg-neutral-700 px-4 py-3 rounded-xl cursor-pointer text-xs";
+        li.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="font-bold truncate mr-2">${name}</span>
+                <span class="text-[8px] text-neutral-400 flex-shrink-0">R:${p.rPity} S:${p.srPity}</span>
+            </div>
+            <div class="text-[8px] text-neutral-500 mt-1">💰 ${formatRp(spent)} | St:${stiker} Ps:${poster} Pc:${postcard}</div>`;
+        li.onclick = () => { loadSpecificPlayer(name); closeModal('playerModal'); };
+        ul.appendChild(li);
+    });
+
+    if (names.length === 0) ul.innerHTML = `<li class="text-center py-6 text-neutral-500 text-xs">Tidak ada player</li>`;
+}
+
+function filterPlayerList() { renderPlayerListModal(document.getElementById("searchInput").value.trim()); }
+
+function registerNewPlayer() {
+    const name = document.getElementById("newName").value.trim();
+    if (!name) { akAlert("Masukkan nama dulu!"); return; }
+    if (players[name]) { akAlert("Nama sudah terdaftar!"); return; }
+    players[name] = { rPity: 0, srPity: 0, totalPulls: 0, history: [], pullLog: [] };
+    savePlayers();
+    document.getElementById("newName").value = "";
+    renderPlayerListModal("");
+    loadSpecificPlayer(name);
+}
+
+function loadSpecificPlayer(name) {
+    currentPlayerName = name;
+    document.getElementById("currentPlayer").textContent = name;
+    const btnLabel = document.getElementById("currentPlayerBtnLabel");
+    if (btnLabel) btnLabel.textContent = name;
+    updatePityDisplay();
+}
+
+function updatePityDisplay() {
+    if (!currentPlayerName) return;
+    const p = players[currentPlayerName];
+    document.getElementById("rPity").textContent = `${p.rPity}/${CONFIG.pity.R}`;
+    document.getElementById("srPity").textContent = `${p.srPity}/${CONFIG.pity.SR}`;
+    document.getElementById("pityRWrap").classList.toggle("pity-ready", p.rPity >= CONFIG.pity.R);
+    document.getElementById("pitySrWrap").classList.toggle("pity-ready", p.srPity >= CONFIG.pity.SR);
+}
+
+/* ========== GLOBAL HISTORY ========== */
+function addToGlobalHistory(playerName, item) {
+    globalHistory.unshift({ player: playerName, name: item.name, rarity: item.rarity, time: Date.now() });
+    if (globalHistory.length > 200) globalHistory = globalHistory.slice(0, 200);
+    saveGlobalHistory();
+}
+
+function renderHistory() {
+    const c = document.getElementById("history");
+    c.innerHTML = "";
+    globalHistory.slice(0, 40).forEach(item => {
+        const div = document.createElement("div");
+        div.className = `px-4 py-2 rounded-xl text-[10px] flex justify-between items-center ${TIER_HISTORY_CLS[item.rarity] || TIER_HISTORY_CLS.COMMON}`;
+        div.innerHTML = `<span class="font-bold truncate mr-2">${item.name}</span><span class="opacity-60 text-[8px] flex-shrink-0">${item.player} · ${item.rarity}</span>`;
+        c.appendChild(div);
+    });
+    if (globalHistory.length === 0) c.innerHTML = `<div class="text-center py-4 text-neutral-500 text-[10px]">Belum ada history</div>`;
+}
+
+/* ========== PITY CLAIM ========== */
+function tryClaimPity(tier) {
+    if (!currentPlayerName) return;
+    const p = players[currentPlayerName];
+    const pityKey = tier === "R" ? "rPity" : "srPity";
+    if (p[pityKey] < CONFIG.pity[tier]) return;
+
+    const items = (CONFIG.items[tier] || []).filter(i => (stock[i] || 0) > 0);
+    if (items.length === 0) {
+        document.getElementById("oosText").textContent = `Semua item ${tier} sudah habis!`;
+        document.getElementById("oosModal").classList.remove("hidden");
+        return;
+    }
+
+    const [color, borderColor] = TIER_PITY_COLOR[tier];
+    const inner = document.getElementById("pityClaimInner");
+    inner.className = `modal-enter bg-neutral-900 border-2 ${borderColor} rounded-3xl p-5 max-w-xs w-full mx-4 text-center`;
+    document.getElementById("pityClaimTitle").className = `text-base mb-2 ${color}`;
+    document.getElementById("pityClaimTitle").textContent = `🎉 PITY ${tier} TERCAPAI!`;
+    document.getElementById("pityClaimDesc").textContent = `Pilih 1 item ${tier}:`;
+    document.getElementById("pityClaimCounter").textContent = `${currentPlayerName} — Pity ${p[pityKey]}`;
+
+    const container = document.getElementById("pityClaimItems");
+    container.innerHTML = "";
+    items.forEach(itemName => {
+        const btn = document.createElement("button");
+        btn.className = `pity-item btn-press w-full py-4 rounded-2xl text-sm font-bold ${TIER_GLOW[tier]} ${TIER_BG[tier]}`;
+        btn.innerHTML = `${TIER_EMOJI[tier]} ${itemName} <span class="text-[8px] opacity-50">(stok: ${stock[itemName]})</span>`;
+        btn.onclick = () => claimPityItem(tier, itemName);
+        container.appendChild(btn);
+    });
+    document.getElementById("pityClaimModal").classList.remove("hidden");
+    if (tier === "SR") confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
+}
+
+function claimPityItem(tier, itemName) {
+    if (!currentPlayerName) return;
+    const p = players[currentPlayerName];
+    decrementStock(itemName);
+    p.history.unshift({ name: itemName, rarity: tier });
+    addToGlobalHistory(currentPlayerName, { name: itemName, rarity: tier });
+    if (tier === "R") p.rPity = 0;
+    else if (tier === "SR") p.srPity = 0;
+    savePlayers(); updatePityDisplay(); renderHistory();
+    closeModal("pityClaimModal");
+    if (tier === "SR") confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
+}
+
+/* ========== STOCK ========== */
+function toggleStockModal() {
+    const m = document.getElementById("stockModal");
+    m.classList.toggle("hidden");
+    if (!m.classList.contains("hidden")) renderStockList();
+}
+
+function renderStockList() {
+    const c = document.getElementById("stockList");
+    c.innerHTML = "";
+    TIERS.forEach(tier => {
+        const section = document.createElement("div");
+        section.innerHTML = `<div class="text-${TIER_COLORS[tier]}-400 text-[8px] tracking-widest mb-2">${tier}</div>`;
+        (CONFIG.items[tier] || []).forEach(itemName => {
+            const s = stock[itemName] ?? 0;
+            const badge = s > 0
+                ? `<span class="stock-badge bg-green-500/20 text-green-300">${s} tersisa</span>`
+                : `<span class="stock-badge bg-red-500/20 text-red-400">HABIS</span>`;
+            const row = document.createElement("div");
+            row.className = "bg-neutral-800 rounded-xl px-3 py-3 flex items-center justify-between mb-1.5";
+            row.innerHTML = `
+                <div><div class="text-xs font-bold">${itemName}</div><div class="mt-1">${badge}</div></div>
+                <div class="flex items-center gap-1">
+                    <button onclick="adjustStock('${itemName}',-1)" class="btn-press w-8 h-8 bg-red-600 rounded-lg text-sm font-bold flex items-center justify-center">−</button>
+                    <input type="number" value="${s}" min="0" onchange="setStock('${itemName}',this.value)" class="w-14 h-8 bg-neutral-700 rounded-lg text-center text-xs font-bold focus:outline-none focus:ring-1 focus:ring-orange-400"/>
+                    <button onclick="adjustStock('${itemName}',1)" class="btn-press w-8 h-8 bg-green-600 rounded-lg text-sm font-bold flex items-center justify-center">+</button>
+                </div>`;
+            section.appendChild(row);
+        });
+        c.appendChild(section);
+    });
+}
+
+function adjustStock(item, d) { stock[item] = Math.max(0, (stock[item] || 0) + d); saveStock(); renderStockList(); }
+function setStock(item, v) { stock[item] = Math.max(0, parseInt(v) || 0); saveStock(); renderStockList(); }
+
+function resetStock() {
+    akConfirm("Reset semua stok ke default?", () => {
+        stock = JSON.parse(JSON.stringify(DEFAULT_STOCK));
+        [].concat(...Object.values(CONFIG.items)).forEach(i => { if (!(i in stock)) stock[i] = 10; });
+        saveStock(); renderStockList();
+    });
+}
+
+/* ========== GACHA ENGINE ========== */
+function getAvailableItems(tier) {
+    return (CONFIG.items[tier] || []).filter(i => (stock[i] || 0) > 0);
+}
+
+function buildActiveRates() {
+    let active = {}, totalActive = 0;
+    TIERS.forEach(t => {
+        if (getAvailableItems(t).length > 0) { active[t] = CONFIG.rates[t]; totalActive += CONFIG.rates[t]; }
+    });
+    if (totalActive === 0) return null;
+    const norm = {};
+    Object.keys(active).forEach(t => { norm[t] = active[t] / totalActive; });
+    return norm;
+}
+
+function rollItem() {
+    const rates = buildActiveRates();
+    if (!rates) return null;
+
+    const rand = Math.random();
+    let cum = 0;
+    for (const tier of TIERS) {
+        if (!rates[tier]) continue;
+        cum += rates[tier];
+        if (rand < cum) {
+            const available = getAvailableItems(tier);
+            if (available.length === 0) continue;
+            if (tier === "COMMON") return { name: "Common", rarity: "COMMON" };
+            const chosen = available[Math.floor(Math.random() * available.length)];
+            const p = players[currentPlayerName];
+            if (tier === "SR") p.srPity = 0;
+            else if (tier === "R") p.rPity = 0;
+            return { name: chosen, rarity: tier };
+        }
+    }
+    if (getAvailableItems("COMMON").length > 0) return { name: "Common", rarity: "COMMON" };
+    for (const tier of TIERS) {
+        const avail = getAvailableItems(tier);
+        if (avail.length > 0) return { name: avail[Math.floor(Math.random() * avail.length)], rarity: tier };
+    }
+    return null;
+}
+
+function incrementPity(rarity) {
+    const p = players[currentPlayerName];
+    p.rPity++; p.srPity++;
+    if (rarity === "SR") p.srPity = 0;
+    else if (rarity === "R") p.rPity = 0;
+}
+
+function decrementStock(itemName) {
+    if (stock[itemName] !== undefined && stock[itemName] > 0) { stock[itemName]--; saveStock(); }
+}
+
+/* ========== SHUFFLE ANIMATION (sama seperti v2) ========== */
+function playShuffleAnimation(results) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById("pullOverlay");
+        const canvas = document.getElementById("particleCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        overlay.classList.add("active");
+
+        const orbEl = document.getElementById("pullOrbAnim");
+        const shuffleText = document.getElementById("shuffleText");
+        const shuffleCounter = document.getElementById("shuffleCounter");
+        const skipBtnEl = document.getElementById("skipBtn");
+        skipBtnEl.style.display = "block"; skipRequested = false;
+
+        const highestRarity = results.reduce((best, r) =>
+            (TIER_RANK[r.rarity] || 0) > (TIER_RANK[best] || 0) ? r.rarity : best, "COMMON");
+        const pColors = TIER_PARTICLE[highestRarity];
+
+        const pc = document.getElementById("shuffleParticles"); pc.innerHTML = "";
+        for (let i = 0; i < 8; i++) {
+            const d = document.createElement("div");
+            d.className = "shuffle-particle";
+            d.style.width = d.style.height = (Math.random() * 6 + 3) + "px";
+            d.style.background = pColors[i % pColors.length];
+            d.style.top = "50%"; d.style.left = "50%";
+            d.style.animationDuration = (0.6 + Math.random() * 0.6) + "s";
+            d.style.animationDelay = (i * 0.1) + "s";
+            pc.appendChild(d);
+        }
+
+        orbEl.classList.add("shuffle-orb-spin");
+        shuffleText.style.display = "block"; shuffleCounter.style.display = "block";
+        orbEl.style.transition = "none"; orbEl.style.transform = "scale(1)"; orbEl.style.opacity = "1";
+
+        let sf = 0;
+        const allItems = [].concat(...Object.values(CONFIG.items));
+        const si = setInterval(() => { shuffleCounter.textContent = allItems[sf % allItems.length]; sf++; }, 80);
+
+        let sParticles = [], animating = true;
+        function animS() {
+            if (!animating) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < 3; i++) {
+                const a = Math.random() * Math.PI * 2, s = Math.random() * 3 + 1;
+                sParticles.push({
+                    x: canvas.width/2 + (Math.random()-.5)*60, y: canvas.height/2 + (Math.random()-.5)*60,
+                    vx: Math.cos(a)*s, vy: Math.sin(a)*s, size: Math.random()*3+1,
+                    color: pColors[Math.floor(Math.random()*pColors.length)], life: 1
+                });
+            }
+            sParticles.forEach(p => {
+                p.x += p.vx; p.y += p.vy; p.life -= .02;
+                if (p.life > 0) {
+                    ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                }
+            });
+            sParticles = sParticles.filter(p => p.life > 0);
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(animS);
+        }
+        animS();
+
+        function finish() {
+            if (!animating) return;
+            animating = false; clearInterval(si);
+            orbEl.classList.remove("shuffle-orb-spin");
+            shuffleText.style.display = "none"; shuffleCounter.style.display = "none";
+            pc.innerHTML = ""; ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (skipRequested) {
+                skipBtnEl.style.display = "none"; overlay.classList.remove("active");
+                orbEl.style.transform = "scale(1)"; orbEl.style.opacity = "1";
+                resolve(); return;
+            }
+
+            let bp = [];
+            for (let i = 0; i < 80; i++) bp.push({
+                x: canvas.width/2, y: canvas.height/2,
+                vx: (Math.random()-.5)*14, vy: (Math.random()-.5)*14,
+                size: Math.random()*5+1, color: pColors[Math.floor(Math.random()*pColors.length)], life: 1
+            });
+
+            orbEl.style.transition = "transform .5s cubic-bezier(.4,0,.2,1)";
+            orbEl.style.transform = "scale(.5)";
+
+            setTimeout(() => {
+                orbEl.style.transition = "transform .15s,opacity .15s";
+                orbEl.style.transform = "scale(2)"; orbEl.style.opacity = "0";
+
+                const crack = document.createElement("div"); crack.className = "crack-effect";
+                overlay.appendChild(crack); setTimeout(() => crack.remove(), 500);
+
+                const burst = document.createElement("div"); burst.className = "starburst";
+                for (let i = 0; i < 16; i++) {
+                    const ray = document.createElement("div"); ray.className = "ray";
+                    ray.style.background = pColors[i % pColors.length];
+                    ray.style.transform = `rotate(${i * 22.5}deg)`;
+                    ray.style.animationDelay = `${i * 30}ms`;
+                    burst.appendChild(ray);
+                }
+                overlay.appendChild(burst); setTimeout(() => burst.remove(), 1000);
+                if (highestRarity === "SR") confetti({ particleCount: 200, spread: 90, origin: { y: .5 } });
+            }, 400);
+
+            let f2 = 0;
+            function animB() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                bp.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += .12; p.life -= .015;
+                    if (p.life > 0) {
+                        ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                    }
+                });
+                ctx.globalAlpha = 1; f2++;
+                if (f2 < 70 && !skipRequested) requestAnimationFrame(animB);
+                else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    skipBtnEl.style.display = "none"; overlay.classList.remove("active");
+                    orbEl.style.transition = "none"; orbEl.style.transform = "scale(1)"; orbEl.style.opacity = "1";
+                    resolve();
+                }
+            }
+            animB();
+        }
+
+        const cs = setInterval(() => { if (skipRequested) { clearInterval(cs); finish(); } }, 50);
+        setTimeout(() => { clearInterval(cs); if (animating) finish(); }, 2000);
+    });
+}
+
+function skipAnimation() {
+    skipRequested = true;
+    revealTimeouts.forEach(t => clearTimeout(t)); revealTimeouts = [];
+    document.querySelectorAll('.card-hidden').forEach(c => { c.classList.remove('card-hidden'); c.classList.add('card-show'); });
+    const overlay = document.getElementById("pullOverlay");
+    const orbEl = document.getElementById("pullOrbAnim");
+    const skipBtnEl = document.getElementById("skipBtn");
+    overlay.classList.remove("active"); skipBtnEl.style.display = "none";
+    orbEl.style.transition = "none"; orbEl.style.transform = "scale(1)"; orbEl.style.opacity = "1";
+    orbEl.classList.remove("shuffle-orb-spin");
+    document.getElementById("shuffleText").style.display = "none";
+    document.getElementById("shuffleCounter").style.display = "none";
+    document.getElementById("shuffleParticles").innerHTML = "";
+}
+
+/* ========== SHOW RESULTS ========== */
+function showResults(results) {
+    const area = document.getElementById("resultModal");
+    const container = document.getElementById("resultsContainer");
+    container.innerHTML = ""; area.classList.remove("hidden");
+
+    const cards = [];
+    results.forEach((item, i) => {
+        const card = document.createElement("div");
+        card.className = `rounded-2xl p-4 text-center card-hidden ${TIER_GLOW[item.rarity]} ${TIER_BG[item.rarity]}`;
+        card.innerHTML = `
+            <div class="text-2xl mb-1">${TIER_EMOJI[item.rarity] || "🎁"}</div>
+            <div class="text-[8px] uppercase ${TIER_TEXT[item.rarity]} mb-1 tracking-widest">${item.rarity}</div>
+            <div class="text-[10px] font-bold">${item.name}</div>`;
+        container.appendChild(card);
+        cards.push({ card, item, index: i });
+    });
+
+    if (skipRequested) { cards.forEach(c => { c.card.classList.remove('card-hidden'); c.card.classList.add('card-show'); }); return; }
+
+    document.getElementById("skipBtn").style.display = "block";
+    revealTimeouts = [];
+    cards.forEach((c, idx) => {
+        const t = setTimeout(() => {
+            if (skipRequested) return;
+            c.card.classList.remove('card-hidden'); c.card.classList.add('card-show');
+            if (c.item.rarity === "SR") confetti({ particleCount: 100, spread: 70, origin: { y: .6 } });
+        }, idx * 900);
+        revealTimeouts.push(t);
+    });
+    revealTimeouts.push(setTimeout(() => { document.getElementById("skipBtn").style.display = "none"; }, cards.length * 900 + 100));
+}
+
+function closeResultModal() {
+    closeModal("resultModal");
+    document.getElementById("skipBtn").style.display = "none";
+    revealTimeouts.forEach(t => clearTimeout(t)); revealTimeouts = [];
+}
+
+/* ========== CUSTOM PULL ========== */
+function pullCustom() {
+    const input = document.getElementById("customPullInput");
+    const val = parseInt(input.value);
+    if (!val || val < 1) { akAlert("Masukkan jumlah pull yang valid!"); return; }
+    if (val > 999) { akAlert("Maksimal 999 pull!"); return; }
+    input.value = ""; pull(val);
+}
+
+/* ========== PULL ========== */
+async function pull(times) {
+    if (isPulling) return;
+    if (!currentPlayerName) { akAlert("Klik 👤 PLAYER MANAGER → Pilih player dulu!"); togglePlayerModal(); return; }
+
+    const anyAvail = TIERS.some(t => getAvailableItems(t).length > 0);
+    if (!anyAvail) {
+        document.getElementById("oosText").textContent = "Semua stok item telah habis!";
+        document.getElementById("oosModal").classList.remove("hidden"); return;
+    }
+
+    isPulling = true; skipRequested = false;
+    const results = []; pendingCommons = [];
+    const cost = calcPullCost(times);
+
+    for (let i = 0; i < times; i++) {
+        const item = rollItem();
+        if (!item) break;
+        results.push(item);
+        incrementPity(item.rarity);
+
+        if (item.rarity === "COMMON") {
+            const availCommon = getAvailableItems("COMMON");
+            if (availCommon.length === 1) {
+                decrementStock(availCommon[0]);
+                players[currentPlayerName].history.unshift({ name: availCommon[0], rarity: "COMMON" });
+                addToGlobalHistory(currentPlayerName, { name: availCommon[0], rarity: "COMMON" });
+                item.name = availCommon[0];
+            } else if (availCommon.length > 1) {
+                pendingCommons.push(item);
+            }
+        } else {
+            decrementStock(item.name);
+            players[currentPlayerName].history.unshift({ name: item.name, rarity: item.rarity });
+            addToGlobalHistory(currentPlayerName, item);
+        }
+    }
+
+    if (!players[currentPlayerName].pullLog) players[currentPlayerName].pullLog = [];
+    players[currentPlayerName].pullLog.push({ times, cost, date: Date.now() });
+    players[currentPlayerName].totalPulls = (players[currentPlayerName].totalPulls || 0) + times;
+    savePlayers(); updatePityDisplay(); renderHistory();
+
+    if (results.length > 0) { await playShuffleAnimation(results); showResults(results); }
+    isPulling = false;
+    if (pendingCommons.length > 0) setTimeout(showNextCommon, 600);
+}
+
+/* ========== COMMON MODAL ========== */
+function updateCommonCounter() {
+    document.getElementById("commonCounter").textContent = `${pendingCommons.length} Common tersisa`;
+}
+
+function showNextCommon() {
+    if (pendingCommons.length === 0) return;
+    const avail = getAvailableItems("COMMON");
+    if (avail.length === 0) { pendingCommons = []; return; }
+    if (avail.length === 1) { chooseAllCommon(avail[0]); return; }
+
+    CONFIG.items.COMMON.forEach(itemName => {
+        const hasStock = (stock[itemName] || 0) > 0;
+        const sBtn = document.querySelector(`#commonSingleBtns [onclick*="${itemName}"]`);
+        const bBtn = document.querySelector(`#commonBulkBtns [onclick*="${itemName}"]`);
+        if (sBtn) sBtn.style.display = hasStock ? '' : 'none';
+        if (bBtn) bBtn.style.display = hasStock ? '' : 'none';
+    });
+    document.getElementById("commonBulkBtns").style.display = pendingCommons.length > 1 ? '' : 'none';
+    updateCommonCounter();
+    document.getElementById("commonModal").classList.remove("hidden");
+}
+
+function chooseCommon(type) {
+    if (!currentPlayerName || (stock[type] || 0) <= 0) return;
+    decrementStock(type);
+    players[currentPlayerName].history.unshift({ name: type, rarity: "COMMON" });
+    addToGlobalHistory(currentPlayerName, { name: type, rarity: "COMMON" });
+    savePlayers(); renderHistory(); closeModal("commonModal");
+    pendingCommons.shift();
+    if (pendingCommons.length > 0) setTimeout(showNextCommon, 300);
+}
+
+function chooseAllCommon(type) {
+    if (!currentPlayerName) return;
+    let avail = stock[type] || 0;
+    if (avail <= 0) return;
+    const count = Math.min(pendingCommons.length, avail);
+    for (let i = 0; i < count; i++) {
+        decrementStock(type);
+        players[currentPlayerName].history.unshift({ name: type, rarity: "COMMON" });
+        addToGlobalHistory(currentPlayerName, { name: type, rarity: "COMMON" });
+    }
+    pendingCommons.splice(0, count);
+    savePlayers(); renderHistory(); closeModal("commonModal");
+    if (pendingCommons.length > 0) setTimeout(showNextCommon, 300);
+}
+
+/* ========== RESET ========== */
+function resetHistory() {
+    akConfirm("Reset SEMUA history global?\n(Pity & data tetap)", () => {
+        globalHistory = []; saveGlobalHistory();
+        Object.keys(players).forEach(n => { players[n].history = []; });
+        savePlayers(); renderHistory();
+    });
+}
+
+function resetAllData() {
+    akConfirm("⚠️ YAKIN HAPUS SEMUA DATA?", () => {
+        localStorage.removeItem("gachaPlayers"); localStorage.removeItem("gachaStock");
+        localStorage.removeItem("gachaGlobalHistory"); localStorage.removeItem("gachaConfig");
+        location.reload();
+    });
+}
+
+function resetAllDataAdmin() {
+    const input = document.getElementById("resetConfirmInput").value.trim();
+    if (input !== "RESET") { akAlert('Ketik "RESET" (huruf kapital) untuk konfirmasi!'); return; }
+    akConfirm("⚠️ INI AKAN MENGHAPUS SEMUA DATA!\nPlayer, history, stok, dan config akan hilang.\n\nLanjutkan?", () => {
+        localStorage.removeItem("gachaPlayers"); localStorage.removeItem("gachaStock");
+        localStorage.removeItem("gachaGlobalHistory"); localStorage.removeItem("gachaConfig");
+        location.reload();
+    });
+}
+
+/* ========== SPENDING MODAL ========== */
+function toggleSpendingModal() {
+    const m = document.getElementById("spendingModal");
+    m.classList.toggle("hidden");
+    if (!m.classList.contains("hidden")) renderSpending();
+}
+
+function renderSpending() {
+    const list = document.getElementById("spendingList"); list.innerHTML = "";
+    const sorted = Object.keys(players).sort((a, b) => calcSpending(b) - calcSpending(a));
+    sorted.forEach((name, i) => {
+        const spent = calcSpending(name), pulls = players[name].totalPulls || 0;
+        const div = document.createElement("div");
+        div.className = "bg-neutral-800 rounded-xl px-4 py-3 flex justify-between items-center";
+        div.innerHTML = `
+            <div><div class="text-xs font-bold">${i+1}. ${name}</div><div class="text-[8px] text-neutral-400 mt-1">${pulls} pulls</div></div>
+            <div class="text-xs font-bold text-green-400">${formatRp(spent)}</div>`;
+        list.appendChild(div);
+    });
+    if (sorted.length === 0) list.innerHTML = `<div class="text-center py-6 text-neutral-500 text-xs">Belum ada data</div>`;
+}
+
+/* ========== ADMIN ========== */
+function toggleAdminLogin() {
+    openAdminPanel();
+}
+
+function openAdminPanel() { switchAdminTab("rates"); document.getElementById("adminModal").classList.remove("hidden"); }
+
+function switchAdminTab(tab) {
+    ["rates", "items", "revenue", "danger"].forEach(t => {
+        const capT = t.charAt(0).toUpperCase() + t.slice(1);
+        document.getElementById(`admin${capT}Tab`).style.display = t === tab ? "" : "none";
+        const btn = document.getElementById(`tab${capT}`);
+        if (t === "danger") {
+            btn.className = `flex-1 py-2.5 text-[9px] font-bold rounded-none ${t === tab ? "bg-red-700 text-white" : "tab-inactive text-red-400"}`;
+        } else {
+            btn.className = `flex-1 py-2.5 text-[9px] font-bold rounded-none ${t === tab ? "tab-active" : "tab-inactive"}`;
+        }
+    });
+    if (tab === "rates") renderAdminRates();
+    if (tab === "items") renderAdminItems();
+    if (tab === "revenue") renderAdminRevenue();
+}
+
+function renderAdminRates() {
+    const c = document.getElementById("adminRatesList"); c.innerHTML = "";
+    TIERS.forEach(tier => {
+        const pct = (CONFIG.rates[tier] * 100).toFixed(4);
+        const row = document.createElement("div"); row.className = "admin-row flex items-center justify-between";
+        row.innerHTML = `
+            <span class="text-${TIER_COLORS[tier]}-400 text-xs font-bold">${tier}</span>
+            <div class="flex items-center gap-1">
+                <input type="number" step="0.0001" value="${pct}" id="rate_${tier}" class="w-24 h-8 bg-neutral-700 rounded-lg text-center text-xs font-bold focus:outline-none focus:ring-1 focus:ring-orange-400" oninput="updateRateTotal()">
+                <span class="text-[8px] opacity-50">%</span>
+            </div>`;
+        c.appendChild(row);
+    });
+    updateRateTotal();
+}
+
+function updateRateTotal() {
+    let total = 0;
+    TIERS.forEach(t => { total += parseFloat(document.getElementById(`rate_${t}`).value) || 0; });
+    const el = document.getElementById("adminRateTotal");
+    el.textContent = `Total: ${total.toFixed(4)}%`;
+    el.className = `mt-3 text-center text-xs font-bold ${Math.abs(total - 100) < 0.01 ? "text-green-400" : "text-red-400"}`;
+}
+
+function saveAdminRates() {
+    let total = 0;
+    TIERS.forEach(t => { const v = parseFloat(document.getElementById(`rate_${t}`).value) || 0; CONFIG.rates[t] = v / 100; total += v; });
+    if (Math.abs(total - 100) > 0.1) { akAlert(`Total rate harus 100%! Sekarang: ${total.toFixed(4)}%`); return; }
+    saveConfig(); akAlert("Rates tersimpan!"); renderAdminRates();
+}
+
+function renderAdminItems() {
+    const c = document.getElementById("adminItemsList"); c.innerHTML = "";
+    TIERS.forEach(tier => {
+        const section = document.createElement("div");
+        section.innerHTML = `<div class="text-${TIER_COLORS[tier]}-400 text-[8px] tracking-widest mb-2">${tier} ITEMS</div>`;
+        (CONFIG.items[tier] || []).forEach((itemName, idx) => {
+            const s = stock[itemName] ?? 0;
+            const row = document.createElement("div"); row.className = "admin-row flex items-center justify-between";
+            row.innerHTML = `
+                <div class="text-xs font-bold truncate mr-2">${itemName} <span class="text-[8px] opacity-40">(stok:${s})</span></div>
+                <button onclick="removeItem('${tier}',${idx})" class="btn-press px-3 py-1 bg-red-600 rounded-lg text-[8px] font-bold flex-shrink-0">HAPUS</button>`;
+            section.appendChild(row);
+        });
+        c.appendChild(section);
+    });
+}
+
+function addNewItem() {
+    const tier = document.getElementById("newItemTier").value;
+    const name = document.getElementById("newItemName").value.trim();
+    const stk = parseInt(document.getElementById("newItemStock").value) || 10;
+    if (!name) { akAlert("Masukkan nama item!"); return; }
+    if ([].concat(...Object.values(CONFIG.items)).includes(name)) { akAlert("Item sudah ada!"); return; }
+    if (!CONFIG.items[tier]) CONFIG.items[tier] = [];
+    CONFIG.items[tier].push(name);
+    stock[name] = stk;
+    saveConfig(); saveStock();
+    document.getElementById("newItemName").value = "";
+    renderAdminItems(); renderStockList();
+}
+
+function removeItem(tier, idx) {
+    const name = CONFIG.items[tier][idx];
+    akConfirm(`Hapus item "${name}" dari ${tier}?`, () => {
+        CONFIG.items[tier].splice(idx, 1);
+        delete stock[name];
+        saveConfig(); saveStock(); renderAdminItems();
+    });
+}
+
+function renderAdminRevenue() {
+    const c = document.getElementById("adminRevenueSummary"); c.innerHTML = "";
+    const total = calcTotalRevenue();
+    const totalPulls = Object.values(players).reduce((s, p) => s + (p.totalPulls || 0), 0);
+
+    c.innerHTML = `
+        <div class="bg-gradient-to-r from-orange-600/30 to-amber-600/30 border border-orange-500/30 rounded-xl p-4 text-center">
+            <div class="text-[8px] text-orange-300 mb-1">TOTAL PENDAPATAN</div>
+            <div class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">${formatRp(total)}</div>
+            <div class="text-[8px] text-neutral-400 mt-2">${totalPulls} total pulls · ${Object.keys(players).length} players</div>
+        </div>`;
+
+    Object.keys(players).sort((a, b) => calcSpending(b) - calcSpending(a)).forEach((name, i) => {
+        const spent = calcSpending(name), pulls = players[name].totalPulls || 0;
+        const pct = total > 0 ? ((spent / total) * 100).toFixed(1) : 0;
+        const div = document.createElement("div"); div.className = "bg-neutral-800 rounded-xl px-4 py-3";
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div><div class="text-xs font-bold">${i+1}. ${name}</div><div class="text-[8px] text-neutral-400 mt-1">${pulls} pulls · ${pct}% revenue</div></div>
+                <div class="text-xs font-bold text-green-400">${formatRp(spent)}</div>
+            </div>
+            <div class="mt-2 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" style="width:${pct}%"></div>
+            </div>`;
+        c.appendChild(div);
+    });
+}
+
+/* ========== FULL HISTORY MODAL ========== */
+function openFullHistory() {
+    renderFullHistory(globalHistory);
+    document.getElementById("fullHistorySearch").value = "";
+    document.getElementById("fullHistoryModal").classList.remove("hidden");
+}
+
+function filterFullHistory() {
+    const q = document.getElementById("fullHistorySearch").value.trim().toLowerCase();
+    const filtered = q
+        ? globalHistory.filter(h => h.name.toLowerCase().includes(q) || h.player.toLowerCase().includes(q))
+        : globalHistory;
+    renderFullHistory(filtered);
+}
+
+function renderFullHistory(data) {
+    const c = document.getElementById("fullHistoryList");
+    c.innerHTML = "";
+    document.getElementById("fullHistoryCount").textContent = `${data.length} entri`;
+    if (data.length === 0) {
+        c.innerHTML = `<div class="text-center py-8 text-neutral-500 text-[10px]">Tidak ada history</div>`;
+        return;
+    }
+    data.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = `px-4 py-2 rounded-xl text-[10px] flex justify-between items-center ${TIER_HISTORY_CLS[item.rarity] || TIER_HISTORY_CLS.COMMON}`;
+        div.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-[8px] opacity-40 flex-shrink-0">#${data.length - idx}</span>
+                <span class="font-bold truncate">${item.name}</span>
+            </div>
+            <span class="opacity-60 text-[8px] flex-shrink-0 ml-2">${item.player} · ${item.rarity}</span>`;
+        c.appendChild(div);
+    });
+}
+
+/* ========== INIT ========== */
+window.onload = () => {
+    savePlayers(); saveConfig(); saveGlobalHistory();
+    if (Object.keys(players).length === 0) {
+        players["Demo"] = { rPity: 0, srPity: 0, totalPulls: 0, history: [], pullLog: [] };
+        savePlayers();
+    }
+    loadSpecificPlayer(Object.keys(players)[0]);
+    renderHistory();
+};
+</script>
+</body>
+</html>
