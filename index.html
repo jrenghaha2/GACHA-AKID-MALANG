@@ -137,7 +137,6 @@
         .admin-input:focus { outline: none; border-color: var(--ak-orange); }
         .admin-row { background: #14171c; border-left: 2px solid rgba(255,127,17,.4); border-radius: 2px; padding: 10px; margin-bottom: 8px; }
 
-        /* thin corner brackets — HUD signature detail */
         .ak-brackets { position: relative; }
         .ak-brackets::before, .ak-brackets::after {
             content: ''; position: absolute; width: 10px; height: 10px; pointer-events: none;
@@ -145,7 +144,6 @@
         .ak-brackets::before { top: -1px; left: -1px; border-top: 2px solid var(--ak-orange); border-left: 2px solid var(--ak-orange); }
         .ak-brackets::after { bottom: -1px; right: -1px; border-bottom: 2px solid var(--ak-orange); border-right: 2px solid var(--ak-orange); }
 
-        /* angular cut corner, used on header/buttons/panels */
         .ak-cut { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
     </style>
 </head>
@@ -175,11 +173,11 @@
             </div>
         </div>
         <div class="flex gap-3 text-center flex-shrink-0">
-            <div onclick="tryClaimPity('R')" id="pityRWrap" class="cursor-pointer">
+            <div id="pityRWrap">
                 <div class="text-[11px] text-amber-400">R</div>
                 <div id="rPity" class="text-base font-bold text-amber-300 tabular-nums">0/15</div>
             </div>
-            <div onclick="tryClaimPity('SR')" id="pitySrWrap" class="cursor-pointer">
+            <div id="pitySrWrap">
                 <div class="text-[11px] text-orange-400">SR</div>
                 <div id="srPity" class="text-base font-bold text-orange-300 tabular-nums">0/45</div>
             </div>
@@ -243,9 +241,41 @@
                 <div onclick="closeModal('fullHistoryModal')" class="text-3xl cursor-pointer px-2">✕</div>
             </div>
             <div class="p-3 border-b border-neutral-700">
-                <input id="fullHistorySearch" type="text" placeholder="Cari nama item / player..." class="w-full bg-neutral-800 border border-orange-500/50 rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:border-orange-400" oninput="filterFullHistory()">
+                <input id="fullHistorySearch" type="text" placeholder="Cari nama item / player..." class="w-full bg-neutral-800 border border-orange-500/50 rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:border-orange-400 mb-2" oninput="applyFullHistoryFilters()">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <select id="fullHistoryPlayerFilter" class="admin-input" onchange="applyFullHistoryFilters()">
+                        <option value="">Semua Player</option>
+                    </select>
+                    <select id="fullHistoryTierFilter" class="admin-input" onchange="applyFullHistoryFilters()">
+                        <option value="">Semua Tier</option>
+                        <option value="SR">SR</option>
+                        <option value="R">R</option>
+                        <option value="COMMON">COMMON</option>
+                    </select>
+                </div>
+                <select id="fullHistoryItemFilter" class="admin-input mb-2" onchange="applyFullHistoryFilters()">
+                    <option value="">Semua Item</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                        <div class="text-[10px] text-neutral-500 mb-1">Dari Tanggal</div>
+                        <input id="fullHistoryDateFrom" type="date" class="admin-input" onchange="applyFullHistoryFilters()">
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-neutral-500 mb-1">Sampai Tanggal</div>
+                        <input id="fullHistoryDateTo" type="date" class="admin-input" onchange="applyFullHistoryFilters()">
+                    </div>
+                </div>
+                <select id="fullHistorySort" class="admin-input mb-2" onchange="applyFullHistoryFilters()">
+                    <option value="newest">Sorting: Terbaru</option>
+                    <option value="oldest">Sorting: Terlama</option>
+                    <option value="tier">Sorting: Tier Tertinggi</option>
+                    <option value="itemAZ">Sorting: Nama Item A-Z</option>
+                    <option value="playerAZ">Sorting: Nama Player A-Z</option>
+                </select>
+                <button onclick="resetFullHistoryFilters()" class="btn-press w-full py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-[12px] font-bold">↺ RESET FILTER</button>
             </div>
-            <div id="fullHistoryList" class="flex flex-col gap-1.5 overflow-y-auto scroll-area p-3" style="max-height:65dvh"></div>
+            <div id="fullHistoryList" class="flex flex-col gap-1.5 overflow-y-auto scroll-area p-3" style="max-height:55dvh"></div>
         </div>
     </div>
 
@@ -324,17 +354,6 @@
         </div>
     </div>
 
-    <!-- PITY CLAIM MODAL -->
-    <div id="pityClaimModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 modal-backdrop">
-        <div class="modal-enter bg-neutral-900 border-2 rounded-3xl p-5 max-w-xs w-full mx-4 text-center" id="pityClaimInner">
-            <h3 id="pityClaimTitle" class="text-lg mb-2">🎉 PITY TERCAPAI!</h3>
-            <p id="pityClaimDesc" class="mb-4 text-[14px] opacity-70"></p>
-            <div id="pityClaimCounter" class="counter-badge inline-block mb-4"></div>
-            <div id="pityClaimItems" class="space-y-2"></div>
-            <button onclick="closeModal('pityClaimModal')" class="btn-press mt-4 w-full py-2 bg-neutral-700 rounded-xl text-[14px] font-bold opacity-60">NANTI SAJA</button>
-        </div>
-    </div>
-
     <!-- SPENDING MODAL -->
     <div id="spendingModal" class="hidden fixed inset-0 bg-black/85 flex items-end sm:items-center justify-center z-50 modal-backdrop">
         <div class="modal-enter bg-neutral-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden" style="max-height:85dvh">
@@ -355,11 +374,12 @@
                 <div class="flex items-center gap-2"><span class="text-2xl">⚙️</span><div class="text-base font-bold">Admin Panel</div></div>
                 <div onclick="closeModal('adminModal')" class="text-3xl cursor-pointer px-2">✕</div>
             </div>
-            <div class="flex border-b border-neutral-700">
-                <button onclick="switchAdminTab('rates')" id="tabRates" class="flex-1 py-2.5 text-[13px] font-bold tab-active rounded-none">📊 RATES</button>
-                <button onclick="switchAdminTab('items')" id="tabItems" class="flex-1 py-2.5 text-[13px] font-bold tab-inactive rounded-none">🎁 ITEMS</button>
-                <button onclick="switchAdminTab('revenue')" id="tabRevenue" class="flex-1 py-2.5 text-[13px] font-bold tab-inactive rounded-none">💵 REVENUE</button>
-                <button onclick="switchAdminTab('danger')" id="tabDanger" class="flex-1 py-2.5 text-[13px] font-bold tab-inactive rounded-none text-red-400">⚠ RESET</button>
+            <div class="flex border-b border-neutral-700 overflow-x-auto scroll-area">
+                <button onclick="switchAdminTab('rates')" id="tabRates" class="flex-1 py-2.5 text-[12px] font-bold tab-active rounded-none whitespace-nowrap px-2">📊 RATES</button>
+                <button onclick="switchAdminTab('items')" id="tabItems" class="flex-1 py-2.5 text-[12px] font-bold tab-inactive rounded-none whitespace-nowrap px-2">🎁 ITEMS</button>
+                <button onclick="switchAdminTab('revenue')" id="tabRevenue" class="flex-1 py-2.5 text-[12px] font-bold tab-inactive rounded-none whitespace-nowrap px-2">💵 REVENUE</button>
+                <button onclick="switchAdminTab('stats')" id="tabStats" class="flex-1 py-2.5 text-[12px] font-bold tab-inactive rounded-none whitespace-nowrap px-2">📈 STATISTIK</button>
+                <button onclick="switchAdminTab('danger')" id="tabDanger" class="flex-1 py-2.5 text-[12px] font-bold tab-inactive rounded-none text-red-400 whitespace-nowrap px-2">⚠ RESET</button>
             </div>
             <div class="p-4 overflow-y-auto scroll-area" style="max-height:65dvh">
                 <div id="adminRatesTab">
@@ -386,11 +406,14 @@
                     <div class="text-[12px] text-orange-300 mb-3 tracking-widest">PENDAPATAN</div>
                     <div id="adminRevenueSummary" class="space-y-3"></div>
                 </div>
+                <div id="adminStatsTab" style="display:none">
+                    <div id="adminStatsContent"></div>
+                </div>
                 <div id="adminDangerTab" style="display:none">
                     <div class="text-[12px] text-red-400 mb-3 tracking-widest">⚠ ZONA BERBAHAYA</div>
                     <div class="bg-red-950/40 border border-red-500/30 rounded-2xl p-4 mb-3">
                         <div class="text-sm font-bold text-red-300 mb-1">🗑 Reset History</div>
-                        <div class="text-[13px] text-neutral-400 mb-3">Hapus semua history pull global. Pity & data player tetap aman.</div>
+                        <div class="text-[13px] text-neutral-400 mb-3">Hapus semua history pull global. Pity &amp; data player tetap aman.</div>
                         <button onclick="resetHistory()" class="btn-press w-full py-3 bg-red-700 hover:bg-red-600 rounded-xl text-[14px] font-bold">🗑 RESET HISTORY SAJA</button>
                     </div>
                     <div class="bg-red-950/60 border-2 border-red-500/60 rounded-2xl p-4">
@@ -404,7 +427,7 @@
         </div>
     </div>
 
-    <!-- CUSTOM CONFIRM/ALERT DIALOG (pengganti native confirm/alert, biar konsisten di semua browser/WebView) -->
+    <!-- CUSTOM CONFIRM/ALERT DIALOG -->
     <div id="akDialogModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-[60] modal-backdrop">
         <div class="modal-enter ak-cut bg-neutral-900 border-2 border-orange-500/50 p-5 max-w-xs w-full mx-4 text-center">
             <div id="akDialogText" class="text-sm mb-5 leading-relaxed" style="white-space:pre-line"></div>
@@ -416,7 +439,7 @@
     </div>
 
 <script>
-/* ========== CUSTOM DIALOG (ganti window.alert / window.confirm) ========== */
+/* ========== CUSTOM DIALOG ========== */
 function akAlert(message) {
     const okBtn = document.getElementById("akDialogOk");
     document.getElementById("akDialogText").textContent = message;
@@ -443,7 +466,7 @@ function akConfirm(message, onYes) {
 /* ========== CONSTANTS ========== */
 const TIERS = ["SR", "R", "COMMON"];
 const TIER_COLORS = { SR: "orange", R: "amber", COMMON: "purple" };
-const TIER_EMOJI = { SR: "💎", R: "✨", COMMON: "🎁" };
+const TIER_EMOJI = { SR: "\ud83d\udc8e", R: "\u2728", COMMON: "\ud83c\udf81" };
 const TIER_GLOW = { SR: "glow-sr", R: "glow-r", COMMON: "glow-common" };
 const TIER_BG = { SR: "tier-bg-sr", R: "tier-bg-r", COMMON: "tier-bg-common" };
 const TIER_TEXT = { SR: "text-white", R: "text-neutral-900", COMMON: "text-white" };
@@ -452,10 +475,6 @@ const TIER_HISTORY_CLS = {
     SR: "bg-orange-500/20 text-orange-300 border border-orange-500/30",
     R: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
     COMMON: "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-};
-const TIER_PITY_COLOR = {
-    R: ["text-amber-300", "border-amber-400/50"],
-    SR: ["text-orange-300", "border-orange-400/50"]
 };
 const TIER_PARTICLE = {
     SR: ["#ff7a00", "#ffb347", "#fff"],
@@ -476,14 +495,13 @@ let isPulling = false;
 let skipRequested = false;
 let revealTimeouts = [];
 
-/* ========== MIGRATION MID → R ========== */
+/* ========== MIGRATION MID \u2192 R ========== */
 const CONFIG_VERSION = "akid-malang-v1";
 function migrateConfig(cfg) {
     if ("MID" in cfg.rates && !("R" in cfg.rates)) { cfg.rates.R = cfg.rates.MID; delete cfg.rates.MID; }
     if ("MID" in cfg.pity && !("R" in cfg.pity)) { cfg.pity.R = cfg.pity.MID; delete cfg.pity.MID; }
     if ("MID" in cfg.items && !("R" in cfg.items)) { cfg.items.R = cfg.items.MID; delete cfg.items.MID; }
 
-    // Migrasi ke struktur AKID MALANG (tier SSR dihapus, rate/pity/item baru)
     if (localStorage.getItem("gachaConfigVersion") !== CONFIG_VERSION) {
         cfg.rates = { SR: 0.005, R: 0.054, COMMON: 0.941 };
         cfg.pity = { R: 15, SR: 45 };
@@ -541,8 +559,8 @@ function formatRp(n) { return "Rp" + n.toLocaleString("id-ID"); }
 /* ========== PERHITUNGAN BIAYA PULL ========== */
 function calcPullCost(times) {
     if (times <= 0) return 0;
-    const paket3 = Math.floor(times / 3);   // jumlah paket 3x @ Rp5.000
-    const sisa   = times % 3;               // sisanya (0, 1, atau 2) @ Rp2.000 per pull
+    const paket3 = Math.floor(times / 3);
+    const sisa   = times % 3;
     return (paket3 * 5000) + (sisa * 2000);
 }
 
@@ -559,7 +577,7 @@ function calcTotalRevenue() {
 /* ========== ESC KEY ========== */
 document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    const modals = ["pityClaimModal","resultModal","commonModal","playerModal","stockModal","oosModal","spendingModal","adminModal","fullHistoryModal","akDialogModal"];
+    const modals = ["resultModal","commonModal","playerModal","stockModal","oosModal","spendingModal","adminModal","fullHistoryModal","akDialogModal"];
     for (const id of modals) {
         const el = document.getElementById(id);
         if (el && !el.classList.contains("hidden")) { el.classList.add("hidden"); e.preventDefault(); return; }
@@ -592,7 +610,7 @@ function renderPlayerListModal(filter = "") {
                 <span class="font-bold truncate mr-2">${name}</span>
                 <span class="text-[12px] text-neutral-400 flex-shrink-0">R:${p.rPity} S:${p.srPity}</span>
             </div>
-            <div class="text-[12px] text-neutral-500 mt-1">💰 ${formatRp(spent)} | St:${stiker} Ps:${poster} Pc:${postcard}</div>`;
+            <div class="text-[12px] text-neutral-500 mt-1">\ud83d\udcb0 ${formatRp(spent)} | St:${stiker} Ps:${poster} Pc:${postcard}</div>`;
         li.onclick = () => { loadSpecificPlayer(name); closeModal('playerModal'); };
         ul.appendChild(li);
     });
@@ -626,14 +644,15 @@ function updatePityDisplay() {
     const p = players[currentPlayerName];
     document.getElementById("rPity").textContent = `${p.rPity}/${CONFIG.pity.R}`;
     document.getElementById("srPity").textContent = `${p.srPity}/${CONFIG.pity.SR}`;
-    document.getElementById("pityRWrap").classList.toggle("pity-ready", p.rPity >= CONFIG.pity.R);
-    document.getElementById("pitySrWrap").classList.toggle("pity-ready", p.srPity >= CONFIG.pity.SR);
+    document.getElementById("pityRWrap").classList.toggle("pity-ready", p.rPity >= CONFIG.pity.R - 1);
+    document.getElementById("pitySrWrap").classList.toggle("pity-ready", p.srPity >= CONFIG.pity.SR - 1);
 }
 
 /* ========== GLOBAL HISTORY ========== */
 function addToGlobalHistory(playerName, item) {
     globalHistory.unshift({ player: playerName, name: item.name, rarity: item.rarity, time: Date.now() });
-    if (globalHistory.length > 200) globalHistory = globalHistory.slice(0, 200);
+    // [FIX #1] batas dinaikkan dari 200 -> 100000 supaya history & statistik tetap lengkap saat launching
+    if (globalHistory.length > 100000) globalHistory = globalHistory.slice(0, 100000);
     saveGlobalHistory();
 }
 
@@ -643,58 +662,10 @@ function renderHistory() {
     globalHistory.slice(0, 40).forEach(item => {
         const div = document.createElement("div");
         div.className = `px-4 py-2 rounded-xl text-[14px] flex justify-between items-center ${TIER_HISTORY_CLS[item.rarity] || TIER_HISTORY_CLS.COMMON}`;
-        div.innerHTML = `<span class="font-bold truncate mr-2">${item.name}</span><span class="opacity-60 text-[12px] flex-shrink-0">${item.player} · ${item.rarity}</span>`;
+        div.innerHTML = `<span class="font-bold truncate mr-2">${item.name}</span><span class="opacity-60 text-[12px] flex-shrink-0">${item.player} \u00b7 ${item.rarity}</span>`;
         c.appendChild(div);
     });
     if (globalHistory.length === 0) c.innerHTML = `<div class="text-center py-4 text-neutral-500 text-[14px]">Belum ada history</div>`;
-}
-
-/* ========== PITY CLAIM ========== */
-function tryClaimPity(tier) {
-    if (!currentPlayerName) return;
-    const p = players[currentPlayerName];
-    const pityKey = tier === "R" ? "rPity" : "srPity";
-    if (p[pityKey] < CONFIG.pity[tier]) return;
-
-    const items = (CONFIG.items[tier] || []).filter(i => (stock[i] || 0) > 0);
-    if (items.length === 0) {
-        document.getElementById("oosText").textContent = `Semua item ${tier} sudah habis!`;
-        document.getElementById("oosModal").classList.remove("hidden");
-        return;
-    }
-
-    const [color, borderColor] = TIER_PITY_COLOR[tier];
-    const inner = document.getElementById("pityClaimInner");
-    inner.className = `modal-enter bg-neutral-900 border-2 ${borderColor} rounded-3xl p-5 max-w-xs w-full mx-4 text-center`;
-    document.getElementById("pityClaimTitle").className = `text-lg mb-2 ${color}`;
-    document.getElementById("pityClaimTitle").textContent = `🎉 PITY ${tier} TERCAPAI!`;
-    document.getElementById("pityClaimDesc").textContent = `Pilih 1 item ${tier}:`;
-    document.getElementById("pityClaimCounter").textContent = `${currentPlayerName} — Pity ${p[pityKey]}`;
-
-    const container = document.getElementById("pityClaimItems");
-    container.innerHTML = "";
-    items.forEach(itemName => {
-        const btn = document.createElement("button");
-        btn.className = `pity-item btn-press w-full py-4 rounded-2xl text-base font-bold ${TIER_GLOW[tier]} ${TIER_BG[tier]}`;
-        btn.innerHTML = `${TIER_EMOJI[tier]} ${itemName} <span class="text-[12px] opacity-50">(stok: ${stock[itemName]})</span>`;
-        btn.onclick = () => claimPityItem(tier, itemName);
-        container.appendChild(btn);
-    });
-    document.getElementById("pityClaimModal").classList.remove("hidden");
-    if (tier === "SR") confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
-}
-
-function claimPityItem(tier, itemName) {
-    if (!currentPlayerName) return;
-    const p = players[currentPlayerName];
-    decrementStock(itemName);
-    p.history.unshift({ name: itemName, rarity: tier });
-    addToGlobalHistory(currentPlayerName, { name: itemName, rarity: tier });
-    if (tier === "R") p.rPity = 0;
-    else if (tier === "SR") p.srPity = 0;
-    savePlayers(); updatePityDisplay(); renderHistory();
-    closeModal("pityClaimModal");
-    if (tier === "SR") confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
 }
 
 /* ========== STOCK ========== */
@@ -720,7 +691,7 @@ function renderStockList() {
             row.innerHTML = `
                 <div><div class="text-sm font-bold">${itemName}</div><div class="mt-1">${badge}</div></div>
                 <div class="flex items-center gap-1">
-                    <button onclick="adjustStock('${itemName}',-1)" class="btn-press w-8 h-8 bg-red-600 rounded-lg text-base font-bold flex items-center justify-center">−</button>
+                    <button onclick="adjustStock('${itemName}',-1)" class="btn-press w-8 h-8 bg-red-600 rounded-lg text-base font-bold flex items-center justify-center">\u2212</button>
                     <input type="number" value="${s}" min="0" onchange="setStock('${itemName}',this.value)" class="w-14 h-8 bg-neutral-700 rounded-lg text-center text-sm font-bold focus:outline-none focus:ring-1 focus:ring-orange-400"/>
                     <button onclick="adjustStock('${itemName}',1)" class="btn-press w-8 h-8 bg-green-600 rounded-lg text-base font-bold flex items-center justify-center">+</button>
                 </div>`;
@@ -730,8 +701,16 @@ function renderStockList() {
     });
 }
 
-function adjustStock(item, d) { stock[item] = Math.max(0, (stock[item] || 0) + d); saveStock(); renderStockList(); }
-function setStock(item, v) { stock[item] = Math.max(0, parseInt(v) || 0); saveStock(); renderStockList(); }
+function adjustStock(item, d) {
+    stock[item] = Math.max(0, (stock[item] || 0) + d); saveStock();
+    if (document.getElementById("stockList")) renderStockList();
+    if (document.getElementById("adminItemsList")) renderAdminItems();
+}
+function setStock(item, v) {
+    stock[item] = Math.max(0, parseInt(v) || 0); saveStock();
+    if (document.getElementById("stockList")) renderStockList();
+    if (document.getElementById("adminItemsList")) renderAdminItems();
+}
 
 function resetStock() {
     akConfirm("Reset semua stok ke default?", () => {
@@ -739,6 +718,32 @@ function resetStock() {
         [].concat(...Object.values(CONFIG.items)).forEach(i => { if (!(i in stock)) stock[i] = 10; });
         saveStock(); renderStockList();
     });
+}
+
+/* ========== SECURE RNG ========== */
+function secureRandomFloat() {
+    const buf = new Uint32Array(2);
+    crypto.getRandomValues(buf);
+    const hi = buf[0] >>> 5;
+    const lo = buf[1] >>> 6;
+    return (hi * 67108864 + lo) / 9007199254740992;
+}
+
+function secureRandomInt(max) {
+    if (!max || max <= 0) return 0;
+    const buf = new Uint32Array(1);
+    const range = Math.floor(0x100000000 / max) * max;
+    let x;
+    do {
+        crypto.getRandomValues(buf);
+        x = buf[0];
+    } while (x >= range);
+    return x % max;
+}
+
+function secureChoice(arr) {
+    if (!arr || arr.length === 0) return undefined;
+    return arr[secureRandomInt(arr.length)];
 }
 
 /* ========== GACHA ENGINE ========== */
@@ -761,7 +766,7 @@ function rollItem() {
     const rates = buildActiveRates();
     if (!rates) return null;
 
-    const rand = Math.random();
+    const rand = secureRandomFloat();
     let cum = 0;
     for (const tier of TIERS) {
         if (!rates[tier]) continue;
@@ -770,32 +775,37 @@ function rollItem() {
             const available = getAvailableItems(tier);
             if (available.length === 0) continue;
             if (tier === "COMMON") return { name: "Common", rarity: "COMMON" };
-            const chosen = available[Math.floor(Math.random() * available.length)];
-            // Pity TIDAK direset di sini walau dapat SR/R secara natural.
-            // Pity hanya direset saat diklaim manual lewat claimPityItem().
+            const chosen = secureChoice(available);
             return { name: chosen, rarity: tier };
         }
     }
     if (getAvailableItems("COMMON").length > 0) return { name: "Common", rarity: "COMMON" };
     for (const tier of TIERS) {
         const avail = getAvailableItems(tier);
-        if (avail.length > 0) return { name: avail[Math.floor(Math.random() * avail.length)], rarity: tier };
+        if (avail.length > 0) return { name: secureChoice(avail), rarity: tier };
     }
     return null;
 }
 
+/* [PITY BARU] Counter naik tiap pull, dan reset saat item tier itu didapat.
+   Guarantee dipicu saat counter = threshold-1 (14/44), jadi PULL BERIKUTNYA
+   (yang ke-15/45) itu sendiri yang dijamin, bukan pull sesudahnya.
+   Dapat SR TIDAK mereset pity R, tapi pity R di-cap mentok di 14 (tidak
+   lanjut naik ke 15/16 dst) sambil menunggu giliran dijamin. */
 function incrementPity(rarity) {
     const p = players[currentPlayerName];
-    // Pity selalu bertambah tiap pull, apa pun rarity yang didapat.
-    // Reset HANYA terjadi saat player klaim manual (lihat claimPityItem()).
     p.rPity++; p.srPity++;
+    if (rarity === "SR") p.srPity = 0;
+    else if (rarity === "R") p.rPity = 0;
+    if (p.rPity > CONFIG.pity.R - 1) p.rPity = CONFIG.pity.R - 1;
+    if (p.srPity > CONFIG.pity.SR - 1) p.srPity = CONFIG.pity.SR - 1;
 }
 
 function decrementStock(itemName) {
     if (stock[itemName] !== undefined && stock[itemName] > 0) { stock[itemName]--; saveStock(); }
 }
 
-/* ========== SHUFFLE ANIMATION (sama seperti v2) ========== */
+/* ========== SHUFFLE ANIMATION ========== */
 function playShuffleAnimation(results) {
     return new Promise(resolve => {
         const overlay = document.getElementById("pullOverlay");
@@ -954,9 +964,10 @@ function showResults(results) {
         const card = document.createElement("div");
         card.className = `rounded-2xl p-4 text-center card-hidden ${TIER_GLOW[item.rarity]} ${TIER_BG[item.rarity]}`;
         card.innerHTML = `
-            <div class="text-3xl mb-1">${TIER_EMOJI[item.rarity] || "🎁"}</div>
+            <div class="text-3xl mb-1">${TIER_EMOJI[item.rarity] || "\ud83c\udf81"}</div>
             <div class="text-[12px] uppercase ${TIER_TEXT[item.rarity]} mb-1 tracking-widest">${item.rarity}</div>
-            <div class="text-[14px] font-bold">${item.name}</div>`;
+            <div class="text-[14px] font-bold">${item.name}</div>
+            ${item.pity ? '<div class="text-[10px] mt-1 font-bold text-yellow-200 tracking-widest">\ud83c\udfaf PITY</div>' : ''}`;
         container.appendChild(card);
         cards.push({ card, item, index: i });
     });
@@ -994,7 +1005,7 @@ function pullCustom() {
 /* ========== PULL ========== */
 async function pull(times) {
     if (isPulling) return;
-    if (!currentPlayerName) { akAlert("Klik 👤 PLAYER MANAGER → Pilih player dulu!"); togglePlayerModal(); return; }
+    if (!currentPlayerName) { akAlert("Klik \ud83d\udc64 PLAYER MANAGER \u2192 Pilih player dulu!"); togglePlayerModal(); return; }
 
     const anyAvail = TIERS.some(t => getAvailableItems(t).length > 0);
     if (!anyAvail) {
@@ -1006,9 +1017,23 @@ async function pull(times) {
     const results = []; pendingCommons = [];
     const cost = calcPullCost(times);
 
+    const pl = players[currentPlayerName];
     for (let i = 0; i < times; i++) {
-        const item = rollItem();
-        if (!item) break;
+        let item;
+        // [PITY BARU] Guarantee dipicu di counter 14/44 (threshold-1), jadi PULL INI
+        // JUGA (yang ke-15/45) yang langsung dijamin, bukan menunggu pull sesudahnya.
+        // SR dicek dulu (tier tertinggi). Guarantee R boleh "kalah" oleh SR: kalau
+        // hasilnya SR, pity R tidak reset, tapi tetap mentok di 14 sambil menunggu
+        // giliran dijamin di pull berikutnya, dst.
+        if (pl.srPity >= CONFIG.pity.SR - 1 && getAvailableItems("SR").length > 0) {
+            item = { name: secureChoice(getAvailableItems("SR")), rarity: "SR", pity: true };
+        } else {
+            item = rollItem();
+            if (!item) break;
+            if (item.rarity !== "SR" && pl.rPity >= CONFIG.pity.R - 1 && getAvailableItems("R").length > 0) {
+                item = { name: secureChoice(getAvailableItems("R")), rarity: "R", pity: true };
+            }
+        }
         results.push(item);
         incrementPity(item.rarity);
 
@@ -1096,18 +1121,10 @@ function resetHistory() {
     });
 }
 
-function resetAllData() {
-    akConfirm("⚠️ YAKIN HAPUS SEMUA DATA?", () => {
-        localStorage.removeItem("gachaPlayers"); localStorage.removeItem("gachaStock");
-        localStorage.removeItem("gachaGlobalHistory"); localStorage.removeItem("gachaConfig");
-        location.reload();
-    });
-}
-
 function resetAllDataAdmin() {
     const input = document.getElementById("resetConfirmInput").value.trim();
     if (input !== "RESET") { akAlert('Ketik "RESET" (huruf kapital) untuk konfirmasi!'); return; }
-    akConfirm("⚠️ INI AKAN MENGHAPUS SEMUA DATA!\nPlayer, history, stok, dan config akan hilang.\n\nLanjutkan?", () => {
+    akConfirm("\u26a0\ufe0f INI AKAN MENGHAPUS SEMUA DATA!\nPlayer, history, stok, dan config akan hilang.\n\nLanjutkan?", () => {
         localStorage.removeItem("gachaPlayers"); localStorage.removeItem("gachaStock");
         localStorage.removeItem("gachaGlobalHistory"); localStorage.removeItem("gachaConfig");
         location.reload();
@@ -1144,19 +1161,22 @@ function toggleAdminLogin() {
 function openAdminPanel() { switchAdminTab("rates"); document.getElementById("adminModal").classList.remove("hidden"); }
 
 function switchAdminTab(tab) {
-    ["rates", "items", "revenue", "danger"].forEach(t => {
+    ["rates", "items", "revenue", "stats", "danger"].forEach(t => {
         const capT = t.charAt(0).toUpperCase() + t.slice(1);
-        document.getElementById(`admin${capT}Tab`).style.display = t === tab ? "" : "none";
+        const panel = document.getElementById(`admin${capT}Tab`);
+        if (panel) panel.style.display = t === tab ? "" : "none";
         const btn = document.getElementById(`tab${capT}`);
+        if (!btn) return;
         if (t === "danger") {
-            btn.className = `flex-1 py-2.5 text-[13px] font-bold rounded-none ${t === tab ? "bg-red-700 text-white" : "tab-inactive text-red-400"}`;
+            btn.className = `flex-1 py-2.5 text-[12px] font-bold rounded-none whitespace-nowrap px-2 ${t === tab ? "bg-red-700 text-white" : "tab-inactive text-red-400"}`;
         } else {
-            btn.className = `flex-1 py-2.5 text-[13px] font-bold rounded-none ${t === tab ? "tab-active" : "tab-inactive"}`;
+            btn.className = `flex-1 py-2.5 text-[12px] font-bold rounded-none whitespace-nowrap px-2 ${t === tab ? "tab-active" : "tab-inactive"}`;
         }
     });
     if (tab === "rates") renderAdminRates();
     if (tab === "items") renderAdminItems();
     if (tab === "revenue") renderAdminRevenue();
+    if (tab === "stats") renderAdminStats();
 }
 
 function renderAdminRates() {
@@ -1197,10 +1217,15 @@ function renderAdminItems() {
         section.innerHTML = `<div class="text-${TIER_COLORS[tier]}-400 text-[12px] tracking-widest mb-2">${tier} ITEMS</div>`;
         (CONFIG.items[tier] || []).forEach((itemName, idx) => {
             const s = stock[itemName] ?? 0;
-            const row = document.createElement("div"); row.className = "admin-row flex items-center justify-between";
+            const row = document.createElement("div"); row.className = "admin-row flex items-center justify-between flex-wrap gap-2";
             row.innerHTML = `
-                <div class="text-sm font-bold truncate mr-2">${itemName} <span class="text-[12px] opacity-40">(stok:${s})</span></div>
-                <button onclick="removeItem('${tier}',${idx})" class="btn-press px-4 py-2 bg-red-600 rounded-lg text-[12px] font-bold flex-shrink-0">HAPUS</button>`;
+                <div class="text-sm font-bold truncate mr-2">${itemName}</div>
+                <div class="flex items-center gap-1 ml-auto">
+                    <button onclick="adjustStock('${itemName}',-1)" class="btn-press w-8 h-8 bg-red-600 rounded-lg text-base font-bold flex items-center justify-center">−</button>
+                    <input type="number" value="${s}" min="0" onchange="setStock('${itemName}',this.value)" class="w-14 h-8 bg-neutral-700 rounded-lg text-center text-sm font-bold focus:outline-none focus:ring-1 focus:ring-orange-400"/>
+                    <button onclick="adjustStock('${itemName}',1)" class="btn-press w-8 h-8 bg-green-600 rounded-lg text-base font-bold flex items-center justify-center">+</button>
+                    <button onclick="removeItem('${tier}',${idx})" class="btn-press px-3 py-2 bg-red-800 hover:bg-red-700 rounded-lg text-[11px] font-bold flex-shrink-0">HAPUS</button>
+                </div>`;
             section.appendChild(row);
         });
         c.appendChild(section);
@@ -1239,7 +1264,7 @@ function renderAdminRevenue() {
         <div class="bg-gradient-to-r from-orange-600/30 to-amber-600/30 border border-orange-500/30 rounded-xl p-4 text-center">
             <div class="text-[12px] text-orange-300 mb-1">TOTAL PENDAPATAN</div>
             <div class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">${formatRp(total)}</div>
-            <div class="text-[12px] text-neutral-400 mt-2">${totalPulls} total pulls · ${Object.keys(players).length} players</div>
+            <div class="text-[12px] text-neutral-400 mt-2">${totalPulls} total pulls \u00b7 ${Object.keys(players).length} players</div>
         </div>`;
 
     Object.keys(players).sort((a, b) => calcSpending(b) - calcSpending(a)).forEach((name, i) => {
@@ -1248,7 +1273,7 @@ function renderAdminRevenue() {
         const div = document.createElement("div"); div.className = "bg-neutral-800 rounded-xl px-4 py-3";
         div.innerHTML = `
             <div class="flex justify-between items-center">
-                <div><div class="text-sm font-bold">${i+1}. ${name}</div><div class="text-[12px] text-neutral-400 mt-1">${pulls} pulls · ${pct}% revenue</div></div>
+                <div><div class="text-sm font-bold">${i+1}. ${name}</div><div class="text-[12px] text-neutral-400 mt-1">${pulls} pulls \u00b7 ${pct}% revenue</div></div>
                 <div class="text-sm font-bold text-green-400">${formatRp(spent)}</div>
             </div>
             <div class="mt-2 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
@@ -1258,18 +1283,231 @@ function renderAdminRevenue() {
     });
 }
 
+/* ========== ADMIN STATISTIK DASHBOARD ========== */
+// [FIX #1] semua statistik dihitung dari players[].history (tidak dibatasi), bukan dari globalHistory yang dipangkas.
+function computeGlobalStats() {
+    const totalPull = Object.values(players).reduce((s, p) => s + (p.totalPulls || 0), 0);
+    const totalSpending = calcTotalRevenue();
+    const totalPlayer = Object.keys(players).length;
+    let totalItemKeluar = 0, totalSR = 0, totalR = 0, totalCommon = 0;
+    Object.values(players).forEach(p => {
+        (p.history || []).forEach(h => {
+            totalItemKeluar++;
+            if (h.rarity === "SR") totalSR++;
+            else if (h.rarity === "R") totalR++;
+            else if (h.rarity === "COMMON") totalCommon++;
+        });
+    });
+    return { totalPull, totalSpending, totalPlayer, totalItemKeluar, totalSR, totalR, totalCommon };
+}
+
+function computeRealRates(stats) {
+    const total = stats.totalItemKeluar || 0;
+    const realOf = n => total > 0 ? (n / total * 100) : 0;
+    return { SR: realOf(stats.totalSR), R: realOf(stats.totalR), COMMON: realOf(stats.totalCommon) };
+}
+
+// [FIX #1] hitung dari players[].history biar tidak terpotong batas history
+function computeItemCounts() {
+    const counts = {};
+    Object.values(players).forEach(p => {
+        (p.history || []).forEach(h => { counts[h.name] = (counts[h.name] || 0) + 1; });
+    });
+    return counts;
+}
+
+function statCard(label, value, colorClass) {
+    return `<div class="bg-neutral-800 rounded-xl px-3 py-3 text-center">
+        <div class="text-[11px] text-neutral-400 mb-1">${label}</div>
+        <div class="text-base font-bold ${colorClass || "text-white"}">${value}</div>
+    </div>`;
+}
+
+function topListBlock(title, arr, formatter) {
+    formatter = formatter || (v => v);
+    const sorted = arr.slice().filter(x => x.val > 0).sort((a, b) => b.val - a.val).slice(0, 5);
+    let html = `<div><div class="text-[12px] text-cyan-300 mb-2">${title}</div>`;
+    if (sorted.length === 0) {
+        html += `<div class="text-center py-2 text-neutral-500 text-[12px] bg-neutral-800 rounded-lg mb-1">Belum ada data</div>`;
+    } else {
+        sorted.forEach((x, i) => {
+            html += `<div class="flex justify-between text-[13px] bg-neutral-800 rounded-lg px-3 py-2 mb-1">
+                <span class="truncate mr-2">${i + 1}. ${x.name}</span>
+                <span class="font-bold text-orange-300 flex-shrink-0">${formatter(x.val)}</span>
+            </div>`;
+        });
+    }
+    html += `</div>`;
+    return html;
+}
+
+function renderAdminStats() {
+    const c = document.getElementById("adminStatsContent");
+    if (!c) return;
+    const g = computeGlobalStats();
+    const real = computeRealRates(g);
+    let html = "";
+
+    html += `<div class="text-[12px] text-orange-300 mb-3 tracking-widest">GLOBAL</div>`;
+    html += `<div class="grid grid-cols-2 gap-2 mb-5">`;
+    html += statCard("Total Pull", g.totalPull);
+    html += statCard("Total Spending", formatRp(g.totalSpending), "text-green-400");
+    html += statCard("Total Player", g.totalPlayer);
+    html += statCard("Total Item Keluar", g.totalItemKeluar);
+    html += statCard("Total SR", g.totalSR, "text-orange-400");
+    html += statCard("Total R", g.totalR, "text-amber-400");
+    html += statCard("Total Common", g.totalCommon, "text-purple-400");
+    html += `</div>`;
+
+    html += `<div class="text-[12px] text-orange-300 mb-3 tracking-widest">RATE ASLI vs SETTING</div>`;
+    html += `<div class="space-y-2 mb-5">`;
+    TIERS.forEach(t => {
+        const setting = (CONFIG.rates[t] * 100).toFixed(4);
+        const realPct = real[t].toFixed(4);
+        html += `
+        <div class="bg-neutral-800 rounded-xl px-4 py-3">
+            <div class="flex justify-between items-center text-sm font-bold text-${TIER_COLORS[t]}-300">
+                <span>${t}</span><span>Real: ${realPct}%</span>
+            </div>
+            <div class="text-[12px] text-neutral-400 mt-1">Setting: ${setting}%</div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="text-[12px] text-orange-300 mb-3 tracking-widest">PLAYER</div>`;
+    html += `<div class="space-y-2 mb-5">`;
+    const playerNames = Object.keys(players);
+    playerNames.forEach(name => {
+        const p = players[name];
+        const hist = p.history || [];
+        const sr = hist.filter(h => h.rarity === "SR").length;
+        const r = hist.filter(h => h.rarity === "R").length;
+        const common = hist.filter(h => h.rarity === "COMMON").length;
+        const lastPull = (p.pullLog && p.pullLog.length) ? new Date(p.pullLog[p.pullLog.length - 1].date).toLocaleString("id-ID") : "-";
+        html += `
+        <div class="admin-row">
+            <div class="font-bold text-sm mb-1.5">${name}</div>
+            <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] text-neutral-400">
+                <div>Total Pull: <span class="text-white font-bold">${p.totalPulls || 0}</span></div>
+                <div>Spending: <span class="text-green-400 font-bold">${formatRp(calcSpending(name))}</span></div>
+                <div>SR: <span class="text-orange-300 font-bold">${sr}</span></div>
+                <div>R: <span class="text-amber-300 font-bold">${r}</span></div>
+                <div>Common: <span class="text-purple-300 font-bold">${common}</span></div>
+                <div>Pull Terakhir: <span class="text-white">${lastPull}</span></div>
+                <div>R Pity: <span class="text-amber-300 font-bold">${p.rPity}/${CONFIG.pity.R}</span></div>
+                <div>SR Pity: <span class="text-orange-300 font-bold">${p.srPity}/${CONFIG.pity.SR}</span></div>
+            </div>
+        </div>`;
+    });
+    if (playerNames.length === 0) html += `<div class="text-center py-4 text-neutral-500 text-sm">Belum ada player</div>`;
+    html += `</div>`;
+
+    html += `<div class="text-[12px] text-orange-300 mb-3 tracking-widest">TOP LIST</div>`;
+    html += `<div class="space-y-4 mb-5">`;
+    html += topListBlock("Top Spending", playerNames.map(n => ({ name: n, val: calcSpending(n) })), formatRp);
+    html += topListBlock("Top Pull", playerNames.map(n => ({ name: n, val: players[n].totalPulls || 0 })));
+    html += topListBlock("Top SR", playerNames.map(n => ({ name: n, val: (players[n].history || []).filter(h => h.rarity === "SR").length })));
+    html += topListBlock("Top R", playerNames.map(n => ({ name: n, val: (players[n].history || []).filter(h => h.rarity === "R").length })));
+    html += topListBlock("Top Common", playerNames.map(n => ({ name: n, val: (players[n].history || []).filter(h => h.rarity === "COMMON").length })));
+    html += `</div>`;
+
+    html += `<div class="text-[12px] text-orange-300 mb-3 tracking-widest">ITEM KELUAR</div>`;
+    const counts = computeItemCounts();
+    const itemNames = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const maxCount = Math.max(1, ...itemNames.map(n => counts[n]));
+    html += `<div class="space-y-2">`;
+    itemNames.forEach(name => {
+        const pct = (counts[name] / maxCount * 100).toFixed(1);
+        html += `
+        <div>
+            <div class="flex justify-between text-[12px] mb-1">
+                <span class="font-bold truncate mr-2">${name}</span>
+                <span class="text-neutral-400 flex-shrink-0">${counts[name]}</span>
+            </div>
+            <div class="h-2.5 bg-neutral-800 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" style="width:${pct}%"></div>
+            </div>
+        </div>`;
+    });
+    if (itemNames.length === 0) html += `<div class="text-center py-4 text-neutral-500 text-sm">Belum ada data</div>`;
+    html += `</div>`;
+
+    c.innerHTML = html;
+}
+
 /* ========== FULL HISTORY MODAL ========== */
 function openFullHistory() {
-    renderFullHistory(globalHistory);
+    populateFullHistoryFilterOptions();
     document.getElementById("fullHistorySearch").value = "";
+    document.getElementById("fullHistoryPlayerFilter").value = "";
+    document.getElementById("fullHistoryTierFilter").value = "";
+    document.getElementById("fullHistoryItemFilter").value = "";
+    document.getElementById("fullHistoryDateFrom").value = "";
+    document.getElementById("fullHistoryDateTo").value = "";
+    document.getElementById("fullHistorySort").value = "newest";
+    applyFullHistoryFilters();
     document.getElementById("fullHistoryModal").classList.remove("hidden");
 }
 
-function filterFullHistory() {
+function populateFullHistoryFilterOptions() {
+    const playerSel = document.getElementById("fullHistoryPlayerFilter");
+    const itemSel = document.getElementById("fullHistoryItemFilter");
+    const prevPlayer = playerSel.value, prevItem = itemSel.value;
+
+    const playerNames = [...new Set(globalHistory.map(h => h.player))].sort((a, b) => a.localeCompare(b));
+    const itemNames = [...new Set(globalHistory.map(h => h.name))].sort((a, b) => a.localeCompare(b));
+
+    playerSel.innerHTML = `<option value="">Semua Player</option>` +
+        playerNames.map(p => `<option value="${p}">${p}</option>`).join("");
+    itemSel.innerHTML = `<option value="">Semua Item</option>` +
+        itemNames.map(i => `<option value="${i}">${i}</option>`).join("");
+
+    if (playerNames.includes(prevPlayer)) playerSel.value = prevPlayer;
+    if (itemNames.includes(prevItem)) itemSel.value = prevItem;
+}
+
+function resetFullHistoryFilters() {
+    document.getElementById("fullHistorySearch").value = "";
+    document.getElementById("fullHistoryPlayerFilter").value = "";
+    document.getElementById("fullHistoryTierFilter").value = "";
+    document.getElementById("fullHistoryItemFilter").value = "";
+    document.getElementById("fullHistoryDateFrom").value = "";
+    document.getElementById("fullHistoryDateTo").value = "";
+    document.getElementById("fullHistorySort").value = "newest";
+    applyFullHistoryFilters();
+}
+
+function applyFullHistoryFilters() {
     const q = document.getElementById("fullHistorySearch").value.trim().toLowerCase();
-    const filtered = q
-        ? globalHistory.filter(h => h.name.toLowerCase().includes(q) || h.player.toLowerCase().includes(q))
-        : globalHistory;
+    const playerF = document.getElementById("fullHistoryPlayerFilter").value;
+    const tierF = document.getElementById("fullHistoryTierFilter").value;
+    const itemF = document.getElementById("fullHistoryItemFilter").value;
+    const dateFromVal = document.getElementById("fullHistoryDateFrom").value;
+    const dateToVal = document.getElementById("fullHistoryDateTo").value;
+    const sortMode = document.getElementById("fullHistorySort").value;
+
+    const dateFrom = dateFromVal ? new Date(dateFromVal + "T00:00:00").getTime() : null;
+    const dateTo = dateToVal ? new Date(dateToVal + "T23:59:59.999").getTime() : null;
+
+    let filtered = globalHistory.filter(h => {
+        if (q && !(h.name.toLowerCase().includes(q) || h.player.toLowerCase().includes(q))) return false;
+        if (playerF && h.player !== playerF) return false;
+        if (tierF && h.rarity !== tierF) return false;
+        if (itemF && h.name !== itemF) return false;
+        const t = h.time || 0;
+        if (dateFrom !== null && t < dateFrom) return false;
+        if (dateTo !== null && t > dateTo) return false;
+        return true;
+    });
+
+    switch (sortMode) {
+        case "oldest": filtered.sort((a, b) => (a.time || 0) - (b.time || 0)); break;
+        case "tier": filtered.sort((a, b) => (TIER_RANK[b.rarity] || 0) - (TIER_RANK[a.rarity] || 0) || (b.time || 0) - (a.time || 0)); break;
+        case "itemAZ": filtered.sort((a, b) => a.name.localeCompare(b.name)); break;
+        case "playerAZ": filtered.sort((a, b) => a.player.localeCompare(b.player)); break;
+        default: filtered.sort((a, b) => (b.time || 0) - (a.time || 0)); break;
+    }
+
     renderFullHistory(filtered);
 }
 
@@ -1284,12 +1522,17 @@ function renderFullHistory(data) {
     data.forEach((item, idx) => {
         const div = document.createElement("div");
         div.className = `px-4 py-2 rounded-xl text-[14px] flex justify-between items-center ${TIER_HISTORY_CLS[item.rarity] || TIER_HISTORY_CLS.COMMON}`;
+        let timeStr = "";
+        if (item.time) {
+            const d = new Date(item.time);
+            timeStr = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        }
         div.innerHTML = `
             <div class="flex items-center gap-2 min-w-0">
                 <span class="text-[12px] opacity-40 flex-shrink-0">#${data.length - idx}</span>
                 <span class="font-bold truncate">${item.name}</span>
             </div>
-            <span class="opacity-60 text-[12px] flex-shrink-0 ml-2">${item.player} · ${item.rarity}</span>`;
+            <span class="opacity-60 text-[11px] flex-shrink-0 ml-2 text-right">${item.player} · ${item.rarity}${timeStr ? `<br><span class="opacity-50">${timeStr}</span>` : ""}</span>`;
         c.appendChild(div);
     });
 }
